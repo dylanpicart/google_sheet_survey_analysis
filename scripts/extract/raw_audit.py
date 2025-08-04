@@ -75,8 +75,8 @@ def audit_questions_and_write_csv(mapping, mapping_name, csv_paths, output_csv, 
     print(f"{mapping_name} audit complete. Output written to {output_csv} and {output_excel}.")
 
 # Paths for older and younger CSVs
-younger_csv_paths = glob.glob("data/raw_feedback/younger/*.csv", recursive=True)
-older_csv_paths   = glob.glob("data/raw_feedback/older/*.csv", recursive=True)
+younger_csv_paths = glob.glob("data/raw/younger/*.csv", recursive=True)
+older_csv_paths   = glob.glob("data/raw/older/*.csv", recursive=True)
 
 audit_questions_and_write_csv(
     YOUNGER_QUESTION_MAPPING,

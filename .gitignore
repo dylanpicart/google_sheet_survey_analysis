@@ -21,6 +21,7 @@ notebook/docs/
 
 # === Data and Large Files ===
 data/raw_feedback/
+data/raw/
 data/processed/
 data/interim/
 data/configs/

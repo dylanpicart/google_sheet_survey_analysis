@@ -75,7 +75,7 @@ for year, categories in links_dict.items():
             student_feedback_dict[category][year] = combined_df
 
             # Correct file naming with category and year
-            csv_path = os.path.join(DATA_DIR, 'raw_feedback', category, f"sy{year}_{category}_feedback.csv")
+            csv_path = os.path.join(DATA_DIR, 'raw', category, f"sy{year}_{category}_feedback.csv")
             os.makedirs(os.path.dirname(csv_path), exist_ok=True)
             combined_df.to_csv(csv_path, index=False)
             print(f"💾 Saved combined DataFrame to {csv_path}")
