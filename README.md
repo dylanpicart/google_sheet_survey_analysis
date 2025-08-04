@@ -17,6 +17,7 @@ This project provides a robust, reproducible ETL (Extract, Transform, Load) pipe
 ```
 root/
 │
+├── Makefile                 # Run extract, transform, or load scripts
 ├── .venv/                   # Python virtual environment (not tracked)
 ├── creds/                   # Google API credentials (never tracked by git)
 │
@@ -117,7 +118,7 @@ pip install google-api-python-client google-auth-httplib2 google-auth-oauthlib g
 #### **Common Usage Example**
 
 ```bash
-python scripts/extract/scrape_drive_links.py
+python -m scripts.extract.scrape_drive_links
 ```
 
 This will:
@@ -236,6 +237,71 @@ pip install pandas xlsxwriter openpyxl
 * Translate (if needed)
 * Audit, map, and consolidate all survey questions/responses
 * Output results as `SF_Master_Summary.xlsx` and `SF_Master_Data.xlsx` in the `data/processed/` directory
+
+---
+
+### **Using the Makefile for Your ETL Pipeline**
+
+This project includes a **Makefile** for easy automation and orchestration of the ETL workflow.
+
+#### **Common Makefile Commands**
+
+* **Run the full ETL pipeline (skipping Google Drive scraping and confirming before the final Excel output):**
+
+  ```bash
+  make pipeline
+  ```
+
+* **Run only the extract step (data loading, cleaning, translation, audit):**
+
+  ```bash
+  make extract
+  ```
+
+* **Run only the transform step (mapping, summary tables, consolidation):**
+
+  ```bash
+  make transform
+  ```
+
+* **Manually run the scraping step, if you need to update the survey links:**
+
+  ```bash
+  make scrape
+  ```
+
+* **Run only the final Excel export step:**
+
+  ```bash
+  make load
+  ```
+
+* **Clean processed data outputs:**
+
+  ```bash
+  make clean
+  ```
+
+* **Run all unit tests:**
+
+  ```bash
+  make test
+  ```
+
+---
+
+#### **How it works**
+
+* The Makefile allows you to run any ETL stage individually or in sequence.
+* The default `pipeline` target skips the Google Drive scraping step and asks for confirmation before creating the final Excel output, so you won’t overwrite results by accident.
+* You can always run the original `run_etl.sh` script for fully automated execution.
+
+---
+
+#### **Pro tip:**
+
+**Always run `make` commands from the project root directory.**
+The Makefile expects all scripts, data, and outputs to use the standard project structure.
 
 ---
 

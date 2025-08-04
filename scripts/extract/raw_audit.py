@@ -3,7 +3,7 @@ import glob
 from collections import defaultdict
 from utils import clean_text, clean_grade
 
-from data.configs.question_mappings import (
+from data.configs import (
     YOUNGER_QUESTION_MAPPING,
     OLDER_QUESTION_MAPPING,
     build_lookup,
