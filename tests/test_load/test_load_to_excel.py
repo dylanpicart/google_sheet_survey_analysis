@@ -1,0 +1,75 @@
+import pandas as pd
+import os
+from pathlib import Path
+
+def make_csv(path, data):
+    pd.DataFrame(data).to_csv(path, index=False)
+
+def test_load_to_excel_creates_workbook(tmp_path, monkeypatch):
+    # Setup dummy input data files
+    data_dir = tmp_path / "data" / "processed"
+    data_dir.mkdir(parents=True, exist_ok=True)
+
+    # 1. Master totals
+    master_totals = data_dir / "canonical_question_totals.csv"
+    make_csv(master_totals, {
+        "Canonical Question": ["Q1", "Q2"],
+        "Agree": [1, 2], "Disagree": [0, 1], "Overarching": ["O1", "O2"]
+    })
+
+    # 2. Group summaries
+    summary_older = data_dir / "consolidated_questions_older.csv"
+    summary_younger = data_dir / "consolidated_questions_younger.csv"
+    make_csv(summary_older, {
+        "Canonical Question": ["Q1"], "Agree": [1], "Disagree": [0], "Overarching": ["O1"]
+    })
+    make_csv(summary_younger, {
+        "Canonical Question": ["Q2"], "Agree": [2], "Disagree": [1], "Overarching": ["O2"]
+    })
+
+    # 3. Response CSVs (simulate pattern-matching filenames)
+    for fname in ["sy23-24_OLDER.csv", "sy23-24_YOUNGER.csv"]:
+        make_csv(data_dir / fname, {
+            "Canonical Question": ["Q1"], "Agree": [5], "Disagree": [2]
+        })
+
+    # Patch module to look in tmp_path (monkeypatch any constants/paths as needed)
+    monkeypatch.chdir(tmp_path)
+
+    # Import and run
+    import sys
+    sys.path.append(str((tmp_path / "scripts").resolve()))  # if needed for import
+    from scripts.load import load_to_excel  # adjust as needed based on your path
+
+    # Run the script (simulate __main__ if needed)
+    # Or, if function exists, call that directly; else, execute as script
+    output_master = data_dir / "SF_Master_Summary.xlsx"
+    if hasattr(load_to_excel, "main"):
+        load_to_excel.main()
+    else:
+        # If it's only a script, you might need to execfile or similar
+        exec(open(load_to_excel.__file__).read())
+
+    # Check: Excel file created
+    assert output_master.exists()
+
+    # Check: sheet names
+    import openpyxl
+    wb = openpyxl.load_workbook(output_master)
+    sheets = wb.sheetnames
+    assert "Master Summary" in sheets
+    assert "Older Summary" in sheets
+    assert "Younger Summary" in sheets
+    # Response sheets: "SY 23-24 Older Responses", "SY 23-24 Younger Responses"
+    assert any("Older Responses" in s for s in sheets)
+    assert any("Younger Responses" in s for s in sheets)
+
+    # Check: content matches
+    ms = wb["Master Summary"]
+    # First cell should be "Canonical Question"
+    assert ms["A1"].value == "Canonical Question"
+    # Older summary tab should have "Agree" column
+    older = wb["Older Summary"]
+    headers = [cell.value for cell in next(older.iter_rows(min_row=1, max_row=1))]
+    assert "Agree" in headers
+

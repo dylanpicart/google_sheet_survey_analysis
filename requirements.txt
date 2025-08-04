@@ -1,0 +1,38 @@
+# === Core Data Analysis ===
+pandas
+numpy
+
+# === Excel, CSV, and Spreadsheet ===
+openpyxl
+xlsxwriter
+
+# === Google APIs (Drive/Sheets) ===
+google-api-python-client
+google-auth-httplib2
+google-auth-oauthlib
+gspread
+httplib2
+requests-oauthlib
+
+# === General Utilities ===
+requests
+tqdm
+python-dotenv
+PyYAML
+
+# === String Cleaning, Fuzzy Matching ===
+fuzzywuzzy
+python-Levenshtein
+RapidFuzz
+
+# === Visualization (Optional: Comment if not plotting) ===
+matplotlib
+altair
+
+# === Streamlit Dashboard (Optional: Comment if not used) ===
+streamlit
+
+# === Miscellaneous Utilities ===
+packaging
+pytest
+pytest-cov

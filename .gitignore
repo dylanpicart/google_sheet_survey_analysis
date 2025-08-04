@@ -1,0 +1,76 @@
+# === Python cache/files ===
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pdb
+*.so
+
+# === Environments ===
+.venv/
+venv/
+env/
+ENV/
+*.egg-info/
+*.egg
+*.env
+
+# === Jupyter Notebooks Checkpoints ===
+.ipynb_checkpoints/
+notebook/docs/
+
+# === Data and Large Files ===
+data/raw_feedback/
+data/processed/
+data/interim/
+data/configs/
+*.csv
+*.xlsx
+*.xls
+*.xlsb
+
+# === Output, Logs, Reports ===
+*.log
+*.out
+*.tmp
+*.bak
+
+# === Google API Credentials / Secrets ===
+secrets/
+*.json
+*.p12
+service_account.json
+credentials.json
+client_secret.json
+creds/
+
+# === Editor and OS files ===
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+~$*
+
+# === Streamlit and Matplotlib Cache ===
+.streamlit/
+.matplotlib/
+
+# === Test, Build, and Dev Artifacts ===
+coverage.*
+*.coverage
+htmlcov/
+dist/
+build/
+__pypackages__/
+
+# === Project-Specific Extras ===
+*.sqlite
+*.db
+
+# === PyCharm, VSCode, or IDE folders ===
+.idea/
+.vscode/
+*.code-workspace
+
+# === PyTest Cache ===
+.pytest_cache/
