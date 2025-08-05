@@ -2,8 +2,10 @@ import pandas as pd
 import os
 import re
 import numpy as np
-from utils import clean_text, clean_grade, normalize_column
+from utils import clean_text, clean_grade, normalize_column, setup_logging
 from data.configs import school_years, group_params, meta_variants
+
+logger = setup_logging("transform")
 
 SCHOOL_YEARS = school_years
 GROUP_PARAMS = group_params
@@ -57,7 +59,7 @@ def build_output_dict(raw, canonical_cols, accepted_map):
         if col in raw.columns:
             raw_series = raw[col]
             if isinstance(raw_series, pd.DataFrame):
-                print(f"Warning: {col} duplicated! Using first column only.")
+                logger.warning(f"Warning: {col} duplicated! Using first column only.")
                 raw_series = raw_series.iloc[:, 0]
             accepted = accepted_map.get(col, None)
             if accepted:
@@ -117,7 +119,7 @@ def audit_map_for_group(
     meta_variants = meta_variants or META_VARIANTS
     junk_cols = junk_cols or ["Unnamed: 0", "Timestamp", "Column 1"]
 
-    print(f"\nProcessing group: {group.title()}")
+    logger.info(f"\nProcessing group: {group.title()}")
     question_df = pd.read_csv(params["question_list"], encoding="utf-8-sig")
     RAW_QUESTION_COL = "Raw Question"
 
@@ -135,10 +137,10 @@ def audit_map_for_group(
         output_path = os.path.join(params['output_dir'], f"{year}_{group.upper()}_ENGLISH_questions.csv")
 
         if not os.path.exists(raw_path):
-            print(f"  [!] Raw data not found for {year} ({raw_path}) -- skipping")
+            logger.warning(f"  [!] Raw data not found for {year} ({raw_path}) -- skipping")
             continue
 
-        print(f"  Processing year: {year}")
+        logger.info(f"  Processing year: {year}")
 
         raw = pd.read_csv(raw_path)
         raw = process_raw_data(raw, meta_variants, junk_cols)
@@ -147,7 +149,7 @@ def audit_map_for_group(
         # Debugging for non-1D columns (keep for now)
         for k, v in output_dict.items():
             if hasattr(v, "ndim") and v.ndim > 1:
-                print(f"[ERROR] {k} is not 1D! Shape: {v.shape}")
+                logger.error(f"[ERROR] {k} is not 1D! Shape: {v.shape}")
 
         output_dict = clean_output_dict(output_dict)
         output_dict = add_meta_columns(output_dict, raw, meta_cols)
@@ -155,14 +157,16 @@ def audit_map_for_group(
         ordered_cols = meta_cols + [col for col in canonical_cols if col in output_dict and col not in meta_cols]
         dropped_questions = [col for col in canonical_cols if col not in ordered_cols]
         if dropped_questions:
-            print(f"  ⚠️ Dropped {len(dropped_questions)} canonical questions due to all-NaN: {dropped_questions[:3]}{'...' if len(dropped_questions) > 3 else ''}")
+            logger.warning(
+                f"  ⚠️ Dropped {len(dropped_questions)} canonical questions due to all-NaN: {dropped_questions[:3]}{'...' if len(dropped_questions) > 3 else ''}"
+            )
 
         final = pd.DataFrame(output_dict)[ordered_cols]
         final = clean_final_dataframe(final, meta_cols)
 
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         final.to_csv(output_path, index=False)
-        print(f"    Saved: {output_path}")
+        logger.info(f"    Saved: {output_path}")
 
 def main():
     for group, params in GROUP_PARAMS.items():
@@ -173,7 +177,7 @@ def main():
             meta_variants=META_VARIANTS,
             junk_cols=junk_cols
         )
-    print("\nAll years and groups processed. PerformanceWarning gone, output shape is correct.")
+    logger.info("\nAll years and groups processed. PerformanceWarning gone, output shape is correct.")
 
 if __name__ == "__main__":
     main()

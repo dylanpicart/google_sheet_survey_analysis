@@ -1,5 +1,8 @@
 import os
 import pandas as pd
+from utils import setup_logging
+
+logger = setup_logging("transform")
 
 def summarize_totals(
     consolidated_younger_fp,
@@ -34,7 +37,7 @@ def summarize_totals(
 
     os.makedirs(os.path.dirname(output_fp), exist_ok=True)
     totals.to_csv(output_fp, index=False)
-    print(f"Saved totals to: {output_fp}")
+    logger.info(f"Saved totals to: {output_fp}")
     return totals
 
 def main():

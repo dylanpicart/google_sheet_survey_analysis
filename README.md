@@ -18,8 +18,8 @@ This project provides a robust, reproducible ETL (Extract, Transform, Load) pipe
 root/
 │
 ├── Makefile                 # Run extract, transform, or load scripts
-├── .venv/                   # Python virtual environment (not tracked)
-├── creds/                   # Google API credentials (never tracked by git)
+├── .venv/                   # Python virtual environment 
+├── creds/                   # Google API credentials
 │
 ├── data/
 │   ├── configs/             # Config files (YAML, mappings, links)
@@ -35,7 +35,8 @@ root/
 │   ├── transform/       # Scripts for mapping, summaries, consolidation
 │   └── load/                # Scripts for Excel/output/reporting
 │
-├── .env                     # Environment variables (never tracked)
+├── logs/                    # Logging data and issues throughout the ETL pipeline
+├── .env                     # Environment variables
 ├── .gitignore               # Files and folders excluded from git
 ├── README.md                # Project overview and documentation
 ├── SECURITY.md              # Security and responsible disclosure policy
@@ -302,6 +303,31 @@ This project includes a **Makefile** for easy automation and orchestration of th
 
 **Always run `make` commands from the project root directory.**
 The Makefile expects all scripts, data, and outputs to use the standard project structure.
+
+---
+
+## **Logging**
+
+All steps of the ETL pipeline are **fully logged** for transparency, debugging, and auditability.
+Logs are stored in the `logs/` directory, with separate subfolders for each ETL phase:
+
+```
+logs/
+├── extract/
+│   ├── extract.log           # All extraction progress and info
+│   └── extract_error.log     # Extraction warnings and errors only
+├── transform/
+│   ├── transform.log         # Data cleaning, mapping, consolidation steps
+│   └── transform_error.log   # Warnings and errors during transformation
+├── load/
+│   ├── load.log              # Final Excel/report generation steps
+│   └── load_error.log        # Any errors or warnings during loading/output
+```
+
+* **Every script in the pipeline logs to its respective ETL phase.**
+* **Info, warning, and error messages** are captured, including which files were processed, skipped, or had issues.
+* **Error logs** make it easy to spot and debug failed data loads, missing columns, or API problems.
+* Logs rotate automatically to prevent disk overflows.
 
 ---
 

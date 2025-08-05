@@ -7,6 +7,7 @@ import time
 import random
 from dotenv import load_dotenv
 from data.configs import TAB_NAMES
+from utils import setup_logging
 
 load_dotenv()
 
@@ -14,6 +15,7 @@ SCOPES = [
     'https://www.googleapis.com/auth/drive.readonly',
     'https://www.googleapis.com/auth/spreadsheets.readonly'
 ]
+logger = setup_logging("extract")
 
 def authenticate_drive(service_account_file):
     creds = service_account.Credentials.from_service_account_file(
@@ -27,14 +29,16 @@ def exponential_backoff(request_func, *args, retries=7, **kwargs):
         except HttpError as error:
             if error.resp.status in [403, 429, 500, 503]:
                 wait = min(60, (2 ** n) + random.uniform(0.5, 1.5))
-                print(f"🔁 Retrying ({error.resp.status}) (attempt {n+1}/{retries}) after {wait:.1f}s...")
+                logger.warning(f"🔁 Retrying ({error.resp.status}) (attempt {n+1}/{retries}) after {wait:.1f}s...")
                 time.sleep(wait)
             else:
+                logger.error(f"HTTP error ({error.resp.status}) not recoverable: {error}")
                 raise
         except Exception as e:
             wait = min(60, (2 ** n) + random.uniform(0.5, 1.5))
-            print(f"🔁 Unexpected error '{e}' (attempt {n+1}/{retries}) — sleeping for {wait:.1f}s...")
+            logger.warning(f"🔁 Unexpected error '{e}' (attempt {n+1}/{retries}) — sleeping for {wait:.1f}s...")
             time.sleep(wait)
+    logger.error("Max retries exceeded")
     raise RuntimeError("Max retries exceeded")
 
 def list_subfolders(service, parent_id):
@@ -56,7 +60,6 @@ def generate_sheet_tabs(service, spreadsheet_id):
     sheets = sheet_metadata.get('sheets', [])
     return {sheet['properties']['title']: sheet['properties']['sheetId'] for sheet in sheets}
 
-
 def find_relevant_tabs(tabs):
     return {tab: gid for tab, gid in tabs.items() if tab in TAB_NAMES}
 
@@ -70,6 +73,7 @@ def generate_links_yaml(
     Main workflow: Scrapes Drive, generates links.yaml for survey pipeline.
     All args are optional—default to env or project structure.
     """
+    logger.info("Starting extraction workflow to generate links.yaml")
     # Set defaults for parameters
     if root_folder_id is None:
         root_folder_id = os.getenv("ROOT_FOLDER_ID")
@@ -90,7 +94,7 @@ def generate_links_yaml(
     for year_folder in year_folders:
         if year_folder['name'] not in valid_years:
             continue
-        year_key = year_folder['name'].replace("SY", "").replace("-", "").replace(" Surveys", "") # year_key = (year_folder['name'].replace("SY", "").replace(" Surveys", "").strip())
+        year_key = year_folder['name'].replace("SY", "").replace("-", "").replace(" Surveys", "")
         links_dict[year_key] = {"younger": {}, "older": {}}
 
         feedback_folders = list_subfolders(drive_service, year_folder['id'])
@@ -98,35 +102,36 @@ def generate_links_yaml(
             (f for f in feedback_folders if "student feedback" in f['name'].lower()), None)
 
         if not student_feedback_folder:
+            logger.warning(f"No student feedback folder found in {year_folder['name']}")
             continue
 
         school_folders = list_subfolders(drive_service, student_feedback_folder['id'])
         for school_folder in school_folders:
             school_name = school_folder['name']
             if any(phrase in school_name.lower() for phrase in ["unassigned forms", "sample", "sample survey"]):   
-                print(f"⏩ Skipping folder '{school_name}' (Unassigned or Sample)")
+                logger.info(f"⏩ Skipping folder '{school_name}' (Unassigned or Sample)")
                 continue
 
             sheets = list_sheets_in_folder(drive_service, school_folder['id'])
-            print(f"📁 School: {school_name} → {len(sheets)} sheet(s)")
+            logger.info(f"📁 School: {school_name} → {len(sheets)} sheet(s)")
             for sheet in sheets:
                 sheet_name = sheet.get("name", "").lower()
                 if "younger" in sheet_name:
                     category = "younger"
-                    print(f"📘 Overriding category to 'younger' based on sheet name: {sheet['name']}")
+                    logger.info(f"📘 Overriding category to 'younger' based on sheet name: {sheet['name']}")
                 elif "older" in sheet_name:
                     category = "older"
-                    print(f"📗 Overriding category to 'older' based on sheet name: {sheet['name']}")
+                    logger.info(f"📗 Overriding category to 'older' based on sheet name: {sheet['name']}")
                 else:
                     category = categorize_school(school_name)
-                    print(f"📂 Using school name categorization: {school_name} → {category}")
+                    logger.info(f"📂 Using school name categorization: {school_name} → {category}")
                 try:
                     tabs = generate_sheet_tabs(sheets_service, sheet['id'])
-                    print(f"🧾 Tabs in '{sheet['name']}': {list(tabs.keys())}")
+                    logger.info(f"🧾 Tabs in '{sheet['name']}': {list(tabs.keys())}")
                     time.sleep(2)
                     relevant_tabs = find_relevant_tabs(tabs)
                     if not relevant_tabs:
-                        print(f"⚠️ No matching tabs in '{sheet['name']}' — skipping")
+                        logger.warning(f"⚠️ No matching tabs in '{sheet['name']}' — skipping")
                         continue
                     links_dict[year_key][category].setdefault(school_name, {}).update({
                         tab_name: {
@@ -137,12 +142,12 @@ def generate_links_yaml(
                         } for tab_name, gid in relevant_tabs.items()
                     })
                 except Exception as e:
-                    print(f"❌ Failed processing sheet '{sheet['id']}' due to error: {e}")
+                    logger.error(f"❌ Failed processing sheet '{sheet['id']}' due to error: {e}", exc_info=True)
                 time.sleep(2)
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     with open(output_path, "w") as file:
         yaml.dump(links_dict, file, sort_keys=True)
-    print(f"\n🎉 YAML successfully written to {output_path}")
+    logger.info(f"\n🎉 YAML successfully written to {output_path}")
 
 if __name__ == "__main__":
     generate_links_yaml()

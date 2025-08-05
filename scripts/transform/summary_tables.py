@@ -3,6 +3,9 @@ import re
 import glob
 import os
 from data.configs import SCALE_ORDERS
+from utils import setup_logging
+
+logger = setup_logging("transform")
 
 def simplify_column(col):
     match = re.search(r'\[(.*?)\]', col)
@@ -76,10 +79,10 @@ def process_all_summaries(folders=None, scale_orders=None):
     scale_orders = scale_orders or SCALE_ORDERS
 
     for group, folder in folders.items():
-        print(f"\n=== Checking group: {group} ===")
-        print(f"Folder: {folder}")
+        logger.info(f"\n=== Checking group: {group} ===")
+        logger.info(f"Folder: {folder}")
         files_found = glob.glob(os.path.join(folder, '*.csv'))
-        print(f"Files found: {files_found}")
+        logger.info(f"Files found: {files_found}")
 
         summary_dir = os.path.join(folder, "summary")
         os.makedirs(summary_dir, exist_ok=True)
@@ -89,21 +92,21 @@ def process_all_summaries(folders=None, scale_orders=None):
             base = os.path.splitext(os.path.basename(path))[0]
             out_csv = os.path.join(summary_dir, f"{base}_summary.csv")
             if os.path.basename(path).startswith("summary"):
-                print(f"  Skipping {path} (is a summary file)")
+                logger.info(f"  Skipping {path} (is a summary file)")
                 continue
-            print(f"  Processing {path}")
+            logger.info(f"  Processing {path}")
             df = pd.read_csv(path)
             df_simplified = df.copy()
             df_simplified.columns = [simplify_column(c) for c in df_simplified.columns]
             meta_cols = ["School Year", "School", "Grade", "Tab"]
             question_cols = [c for c in df_simplified.columns if c not in meta_cols]
-            print(f"    Question columns: {question_cols}")
+            logger.info(f"    Question columns: {question_cols}")
             if not question_cols:
-                print("    No question columns found. Skipping.")
+                logger.warning("    No question columns found. Skipping.")
                 continue
             summary = value_count_table(df_simplified, question_cols, scale_orders=scale_orders)
             summary.to_csv(out_csv, index=False)
-            print(f"    Saved summary to {out_csv}\n")
+            logger.info(f"    Saved summary to {out_csv}\n")
 
 if __name__ == "__main__":
     process_all_summaries()

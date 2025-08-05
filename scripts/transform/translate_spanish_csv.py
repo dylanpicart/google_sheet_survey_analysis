@@ -1,7 +1,9 @@
 import pandas as pd
 import os
 from data.configs import EN_SP_MAPPING, ANSWER_MAPPING, cols_to_drop
-from utils import normalize_text
+from utils import normalize_text, setup_logging
+
+logger = setup_logging("transform")
 
 def build_reverse_mapping(mapping, normalize_text):
     """Builds mapping from normalized Spanish to English."""
@@ -66,14 +68,13 @@ def process_csv_file(
         from utils import normalize_text as REAL_normalize_text
         normalize_text = REAL_normalize_text
 
-
     reverse_mapping = build_reverse_mapping(EN_SP_MAPPING, normalize_text)
     answer_mapping = build_normalized_answer_mapping(ANSWER_MAPPING, normalize_text)
 
     df = pd.read_csv(infile)
     spanish_cols = find_spanish_columns(df, reverse_mapping, normalize_text)
     if not spanish_cols:
-        print(f"No Spanish columns found in {infile}")
+        logger.warning(f"No Spanish columns found in {infile}")
         return
 
     spanish_to_english = build_spanish_to_english(spanish_cols, reverse_mapping, normalize_text)
@@ -83,13 +84,13 @@ def process_csv_file(
     df_translated = df_spanish.rename(columns=spanish_to_english)
     df_translated = translate_column_answers(df_translated, answer_mapping, normalize_text)
     df_translated.to_csv(out_translated, index=False)
-    print(f"Saved translated columns: {out_translated}")
+    logger.info(f"Saved translated columns: {out_translated}")
 
     df = merge_translations_into_main(df, df_translated, spanish_to_english, normalize_text)
     df = df.drop(columns=spanish_cols, errors='ignore')
     df = drop_normalized_columns(df, cols_to_drop, normalize_text)
     df.to_csv(out_main, index=False)
-    print(f"Saved main file with Spanish columns replaced: {out_main}")
+    logger.info(f"Saved main file with Spanish columns replaced: {out_main}")
 
 def batch_translate_dir(in_dir):
     for file in os.listdir(in_dir):

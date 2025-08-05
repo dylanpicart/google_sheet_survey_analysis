@@ -1,14 +1,16 @@
+import os
 import pandas as pd
 import glob
 from collections import defaultdict
-from utils import clean_text, clean_grade
+from utils import clean_text, clean_grade, setup_logging  
 from data.configs import (
     YOUNGER_QUESTION_MAPPING,
     OLDER_QUESTION_MAPPING,
     build_lookup,
     audit_and_clean_columns,
 )
-import os
+
+logger = setup_logging("extract")
 
 def audit_questions_and_write_csv(
     mapping, mapping_name, csv_paths, output_csv, output_excel
@@ -17,7 +19,7 @@ def audit_questions_and_write_csv(
     question_cleaned_samples = defaultdict(set)
     question_raw_samples = defaultdict(set)
 
-    GRADE_COLS = ["grade", "grado"]  # Add more grade column names as needed
+    GRADE_COLS = ["grade", "grado"]
 
     for path in csv_paths:
         df = pd.read_csv(path)
@@ -74,7 +76,7 @@ def audit_questions_and_write_csv(
     os.makedirs(os.path.dirname(output_csv), exist_ok=True)
     df_out_filtered.to_csv(output_csv, index=False)
     df_out_filtered.to_excel(output_excel, index=False)
-    print(f"{mapping_name} audit complete. Output written to {output_csv} and {output_excel}.")
+    logger.info(f"{mapping_name} audit complete. Output written to {output_csv} and {output_excel}.")
 
 def main():
     younger_csv_paths = glob.glob("data/raw/younger/*.csv", recursive=True)

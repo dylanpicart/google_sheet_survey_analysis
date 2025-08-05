@@ -1,6 +1,9 @@
 import pandas as pd
 import re
 import unicodedata
+from utils import setup_logging
+
+logger = setup_logging("transform")
 
 def normalize(text):
     if not isinstance(text, str):
@@ -69,13 +72,17 @@ def map_overarching_workflow(
     all_qs = pd.concat([younger_map, older_map], ignore_index=True)
     all_qs = all_qs.drop_duplicates(subset=["Canonical Question", "Overarching"])
     missing = all_qs[all_qs["Overarching"].isnull()]
-    print("Canonical questions missing an Overarching match:")
-    print(missing)
-    print("Total missing:", missing.shape[0])
+
+    if not missing.empty:
+        logger.warning("Canonical questions missing an Overarching match:")
+        logger.warning(f"\n{missing}")
+        logger.warning(f"Total missing: {missing.shape[0]}")
+    else:
+        logger.info("All canonical questions matched to an Overarching category.")
 
     all_qs.to_csv(output_file, index=False)
-    print(f"Saved mapping to: {output_file}")
-    print(all_qs.head(10))
+    logger.info(f"Saved mapping to: {output_file}")
+    logger.info(f"First 10 rows:\n{all_qs.head(10)}")
     return all_qs
 
 def main():

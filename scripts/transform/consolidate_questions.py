@@ -1,5 +1,8 @@
 import pandas as pd
 import os
+from utils import setup_logging
+
+logger = setup_logging("transform")
 
 def standardize_df(df, year, qcon_map, rescon_mapping):
     df.rename(columns=lambda x: x.strip(), inplace=True)
@@ -49,13 +52,13 @@ def consolidate_questions(
     frames = []
     for year, fp in years_files:
         if not os.path.exists(fp):
-            print(f"Warning: File not found: {fp} (skipping this year)")
+            logger.warning(f"File not found: {fp} (skipping this year)")
             continue
         df = pd.read_csv(fp)
         frames.append(standardize_df(df, year, qcon_map, rescon_mapping))
 
     if not frames:
-        print(f"No files found for group: {group}. Skipping.")
+        logger.warning(f"No files found for group: {group}. Skipping.")
         return
 
     merged = pd.concat(frames, ignore_index=True).fillna(0)
@@ -102,7 +105,7 @@ def consolidate_questions(
 
     os.makedirs(os.path.dirname(output_file), exist_ok=True)
     merged.to_csv(output_file, index=False)
-    print(f"Saved: {output_file}")
+    logger.info(f"Saved: {output_file}")
 
 def batch_consolidate_questions(
     groups,

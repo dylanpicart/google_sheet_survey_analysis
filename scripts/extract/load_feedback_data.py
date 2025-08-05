@@ -6,6 +6,9 @@ from io import StringIO
 from google.oauth2 import service_account
 import google.auth.transport.requests
 from dotenv import load_dotenv
+from utils import setup_logging
+
+logger = setup_logging("extract")
 
 class FeedbackDataLoader:
     SCOPES = [
@@ -54,8 +57,10 @@ class FeedbackDataLoader:
             except Exception as e:
                 problems.append(f"Failed to initialize credentials: {e}")
         if problems:
+            for msg in problems:
+                logger.error(msg)
             raise RuntimeError("Health check failed:\n" + "\n".join(problems))
-        print("✅ Health check passed.")
+        logger.info("✅ Health check passed.")
         return True
 
     @property
@@ -84,7 +89,7 @@ class FeedbackDataLoader:
                 if category and cat != category:
                     continue
                 all_dfs = []
-                print(f"\n📅 Loading data for {y} - {cat}")
+                logger.info(f"📅 Loading data for {y} - {cat}")
                 for school_name, tabs in schools.items():
                     if school and school_name != school:
                         continue
@@ -95,7 +100,7 @@ class FeedbackDataLoader:
                         gid = details['gid']
                         csv_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv&gid={gid}"
 
-                        print(f"⏳ Loading {school_name} - {tab_name}")
+                        logger.info(f"⏳ Loading {school_name} - {tab_name}")
 
                         try:
                             response = requests.get(csv_url, headers=self.headers)
@@ -106,9 +111,9 @@ class FeedbackDataLoader:
                             df['Year'] = y
                             df['Tab'] = tab_name
                             all_dfs.append(df)
-                            print(f"✅ Successfully loaded {school_name} - {tab_name}")
+                            logger.info(f"✅ Successfully loaded {school_name} - {tab_name}")
                         except Exception as e:
-                            print(f"❌ Failed to load {school_name} - {tab_name}: {e}")
+                            logger.error(f"❌ Failed to load {school_name} - {tab_name}: {e}", exc_info=True)
 
                 if all_dfs:
                     combined_df = pd.concat(all_dfs, ignore_index=True)
@@ -116,7 +121,7 @@ class FeedbackDataLoader:
                     csv_path = os.path.join(self.data_dir, 'raw', cat, f"sy{y}_{cat}_feedback.csv")
                     os.makedirs(os.path.dirname(csv_path), exist_ok=True)
                     combined_df.to_csv(csv_path, index=False)
-                    print(f"💾 Saved combined DataFrame to {csv_path}")
+                    logger.info(f"💾 Saved combined DataFrame to {csv_path}")
         return self.student_feedback_dict
 
 if __name__ == "__main__":

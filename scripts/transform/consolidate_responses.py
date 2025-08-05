@@ -1,13 +1,12 @@
 import pandas as pd
 import os
-from utils import normalize_text
+from utils import normalize_text, setup_logging
 
-# ---- These can be passed as parameters for testability ----
+logger = setup_logging("transform")
 
 def get_summary_col_mapping(scale_orders):
     summary_map = {}
 
-    # Frequency mapping
     frequency_map = {
         "All the time": ["Very Frequently (every day or almost every day)", "All the time"],
         "A lot of the time": ["Frequently (several times a week)", "A lot of the time", "A lot"],
@@ -100,7 +99,7 @@ def consolidate_summary(
     consolidated.drop(columns=["Normalized Canonical"], inplace=True)
 
     consolidated.to_csv(output_csv, index=False)
-    print(f"Saved consolidated summary: {output_csv}")
+    logger.info(f"Saved consolidated summary: {output_csv}")
 
 def batch_consolidate_summary(summary_dir, summary_map, canon_to_over_map):
     summary_files = [f for f in os.listdir(summary_dir) if f.endswith(".csv")]

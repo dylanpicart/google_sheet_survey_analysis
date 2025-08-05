@@ -2,6 +2,9 @@ import pandas as pd
 import glob
 import os
 import re
+from utils import setup_logging
+
+logger = setup_logging("load")
 
 def extract_year_and_group(filename):
     m = re.search(r"sy(\d{2}-\d{2})_(OLDER|YOUNGER)", filename, re.I)
@@ -23,6 +26,9 @@ def write_master_excel(
         if os.path.exists(master_totals_path):
             df = pd.read_csv(master_totals_path)
             df.to_excel(writer, sheet_name="Master Summary", index=False)
+            logger.info(f"Added Master Summary from {master_totals_path}")
+        else:
+            logger.warning(f"Master totals file not found: {master_totals_path}")
 
         # 2. Older/Younger Summary
         for csv_path, sheet_name in [
@@ -32,6 +38,9 @@ def write_master_excel(
             if os.path.exists(csv_path):
                 df = pd.read_csv(csv_path)
                 df.to_excel(writer, sheet_name=sheet_name[:31], index=False)
+                logger.info(f"Added {sheet_name} from {csv_path}")
+            else:
+                logger.warning(f"{sheet_name} file not found: {csv_path}")
 
         # 3. All Responses as SY {year} {Group} Responses
         for group, data_dir in responses_dirs.items():
@@ -43,8 +52,9 @@ def write_master_excel(
                     sheet = f"SY {year} {grp} Responses"[:31]
                     df = pd.read_csv(csv_path)
                     df.to_excel(writer, sheet_name=sheet, index=False)
+                    logger.info(f"Added responses: {sheet} from {csv_path}")
 
-    print(f"Saved SF_Master_Summary Excel to: {output_master}")
+    logger.info(f"Saved SF_Master_Summary Excel to: {output_master}")
 
 def main():
     output_master = "data/processed/SF_Master_Summary.xlsx"
