@@ -8,11 +8,11 @@ pipeline: extract transform confirm_load
 # Run only extract (excluding scrape_drive_links)
 extract:
 	python -m scripts.extract.load_feedback_data
-	python -m scripts.extract.translate_spanish_csv
 	python -m scripts.extract.raw_audit
 
 # Run only transform
 transform:
+	python -m scripts.transform.translate_spanish_csv
 	python -m scripts.transform.audit_map
 	python -m scripts.transform.summary_tables
 	python -m scripts.transform.consolidate_responses

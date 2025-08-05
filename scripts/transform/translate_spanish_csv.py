@@ -54,13 +54,18 @@ def process_csv_file(
 ):
     # Use real configs if not injected
     if EN_SP_MAPPING is None:
-        EN_SP_MAPPING = EN_SP_MAPPING
+        from data.configs import EN_SP_MAPPING as REAL_EN_SP_MAPPING
+        EN_SP_MAPPING = REAL_EN_SP_MAPPING
     if ANSWER_MAPPING is None:
-        ANSWER_MAPPING = ANSWER_MAPPING
+        from data.configs import ANSWER_MAPPING as REAL_ANSWER_MAPPING
+        ANSWER_MAPPING = REAL_ANSWER_MAPPING
     if cols_to_drop is None:
-        cols_to_drop = cols_to_drop
+        from data.configs import cols_to_drop as REAL_cols_to_drop
+        cols_to_drop = REAL_cols_to_drop
     if normalize_text is None:
-        normalize_text = normalize_text
+        from utils import normalize_text as REAL_normalize_text
+        normalize_text = REAL_normalize_text
+
 
     reverse_mapping = build_reverse_mapping(EN_SP_MAPPING, normalize_text)
     answer_mapping = build_normalized_answer_mapping(ANSWER_MAPPING, normalize_text)
