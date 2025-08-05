@@ -339,9 +339,6 @@ logs/
 * **Canonical mapping:** Use `QCON_MAP` and audit mapping to ensure all question variations are consolidated.
 * **Translation:** Ensure all responses/options are in English for cross-year consistency.
 
-**Pro Tip:**
-Keep logs of all dropped or transformed data for full transparency!
-
 ---
 
 ## **Next Steps (Pivot & Advanced Analysis)**
