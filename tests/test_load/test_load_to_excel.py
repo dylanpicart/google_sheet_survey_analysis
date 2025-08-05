@@ -1,12 +1,12 @@
 import pandas as pd
-import os
 from pathlib import Path
+from scripts.load.load_to_excel import write_master_excel
+import openpyxl
 
 def make_csv(path, data):
     pd.DataFrame(data).to_csv(path, index=False)
 
-def test_load_to_excel_creates_workbook(tmp_path, monkeypatch):
-    # Setup dummy input data files
+def test_write_master_excel_creates_workbook(tmp_path):
     data_dir = tmp_path / "data" / "processed"
     data_dir.mkdir(parents=True, exist_ok=True)
 
@@ -33,28 +33,22 @@ def test_load_to_excel_creates_workbook(tmp_path, monkeypatch):
             "Canonical Question": ["Q1"], "Agree": [5], "Disagree": [2]
         })
 
-    # Patch module to look in tmp_path (monkeypatch any constants/paths as needed)
-    monkeypatch.chdir(tmp_path)
-
-    # Import and run
-    import sys
-    sys.path.append(str((tmp_path / "scripts").resolve()))  # if needed for import
-    from scripts.load import load_to_excel  # adjust as needed based on your path
-
-    # Run the script (simulate __main__ if needed)
-    # Or, if function exists, call that directly; else, execute as script
     output_master = data_dir / "SF_Master_Summary.xlsx"
-    if hasattr(load_to_excel, "main"):
-        load_to_excel.main()
-    else:
-        # If it's only a script, you might need to execfile or similar
-        exec(open(load_to_excel.__file__).read())
+    write_master_excel(
+        output_master=str(output_master),
+        master_totals_path=str(master_totals),
+        older_summary_path=str(summary_older),
+        younger_summary_path=str(summary_younger),
+        responses_dirs={
+            "older": str(data_dir),
+            "younger": str(data_dir)
+        }
+    )
 
     # Check: Excel file created
     assert output_master.exists()
 
     # Check: sheet names
-    import openpyxl
     wb = openpyxl.load_workbook(output_master)
     sheets = wb.sheetnames
     assert "Master Summary" in sheets
@@ -72,4 +66,3 @@ def test_load_to_excel_creates_workbook(tmp_path, monkeypatch):
     older = wb["Older Summary"]
     headers = [cell.value for cell in next(older.iter_rows(min_row=1, max_row=1))]
     assert "Agree" in headers
-

@@ -6,23 +6,19 @@ import os
 import time
 import random
 from dotenv import load_dotenv
+from data.configs import TAB_NAMES
 
 load_dotenv()
-
-ROOT_FOLDER_ID = os.getenv("ROOT_FOLDER_ID")
-SERVICE_ACCOUNT_FILE = os.getenv("GOOGLE_CREDS_PATH")
 
 SCOPES = [
     'https://www.googleapis.com/auth/drive.readonly',
     'https://www.googleapis.com/auth/spreadsheets.readonly'
 ]
 
-
-def authenticate_drive():
+def authenticate_drive(service_account_file):
     creds = service_account.Credentials.from_service_account_file(
-        SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+        service_account_file, scopes=SCOPES)
     return build('drive', 'v3', credentials=creds), build('sheets', 'v4', credentials=creds)
-
 
 def exponential_backoff(request_func, *args, retries=7, **kwargs):
     for n in range(retries):
@@ -41,22 +37,18 @@ def exponential_backoff(request_func, *args, retries=7, **kwargs):
             time.sleep(wait)
     raise RuntimeError("Max retries exceeded")
 
-
 def list_subfolders(service, parent_id):
     query = f"'{parent_id}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false"
     return exponential_backoff(service.files().list(q=query, pageSize=200).execute).get('files', [])
-
 
 def list_sheets_in_folder(service, folder_id):
     query = f"'{folder_id}' in parents and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false"
     return exponential_backoff(service.files().list(q=query, pageSize=50).execute).get('files', [])
 
-
 def categorize_school(school_name):
     older_keywords = ["High School", "HS", "Origins", "Rockaway", "Collegiate", "BLA", "Bronx Leadership Academy",
                       "Fordham Leadership Academy", "FLA", "Fordham", "New Visions"]
     return "older" if any(keyword.lower() in school_name.lower() for keyword in older_keywords) else "younger"
-
 
 def generate_sheet_tabs(service, spreadsheet_id):
     request = service.spreadsheets().get(spreadsheetId=spreadsheet_id)
@@ -65,32 +57,40 @@ def generate_sheet_tabs(service, spreadsheet_id):
     return {sheet['properties']['title']: sheet['properties']['sheetId'] for sheet in sheets}
 
 
-TAB_NAMES = [
-    "Form Responses", "Form Responses 1", "Form Responses 2", "Responses",
-    "K-8 Responses (EN)", "K-8 Responses (SP)", "K-8 Responses (ENG)", "K-8 Responses (ESP)",
-    "HS Responses (EN)", "HS Responses (SP)", "HS Responses (ENG)", "HS Responses (ESP)"
-]
-
-
 def find_relevant_tabs(tabs):
     return {tab: gid for tab, gid in tabs.items() if tab in TAB_NAMES}
 
-
-if __name__ == "__main__":
-    drive_service, sheets_service = authenticate_drive()
-
-    valid_years = [
-        "SY20-21 Surveys", "SY21-22 Surveys", "SY22-23 Surveys", "SY23-24 Surveys", "SY24-25 Surveys"
-    ]
-
-    year_folders = list_subfolders(drive_service, ROOT_FOLDER_ID)
+def generate_links_yaml(
+    root_folder_id=None,
+    service_account_file=None,
+    output_path=None,
+    valid_years=None
+):
+    """
+    Main workflow: Scrapes Drive, generates links.yaml for survey pipeline.
+    All args are optional—default to env or project structure.
+    """
+    # Set defaults for parameters
+    if root_folder_id is None:
+        root_folder_id = os.getenv("ROOT_FOLDER_ID")
+    if service_account_file is None:
+        service_account_file = os.getenv("GOOGLE_CREDS_PATH")
+    if valid_years is None:
+        valid_years = [
+            "SY20-21 Surveys", "SY21-22 Surveys", "SY22-23 Surveys", "SY23-24 Surveys", "SY24-25 Surveys"
+        ]
+    if output_path is None:
+        output_path = os.path.abspath(os.path.join(
+            os.path.dirname(__file__), "../..", "data", "configs", "links.yaml"
+        ))
+    drive_service, sheets_service = authenticate_drive(service_account_file)
+    year_folders = list_subfolders(drive_service, root_folder_id)
     links_dict = {}
 
     for year_folder in year_folders:
         if year_folder['name'] not in valid_years:
             continue
-
-        year_key = year_folder['name'].replace("SY", "").replace("-", "").replace(" Surveys", "")
+        year_key = year_folder['name'].replace("SY", "").replace("-", "").replace(" Surveys", "") # year_key = (year_folder['name'].replace("SY", "").replace(" Surveys", "").strip())
         links_dict[year_key] = {"younger": {}, "older": {}}
 
         feedback_folders = list_subfolders(drive_service, year_folder['id'])
@@ -101,20 +101,16 @@ if __name__ == "__main__":
             continue
 
         school_folders = list_subfolders(drive_service, student_feedback_folder['id'])
-
         for school_folder in school_folders:
             school_name = school_folder['name']
-
             if any(phrase in school_name.lower() for phrase in ["unassigned forms", "sample", "sample survey"]):   
                 print(f"⏩ Skipping folder '{school_name}' (Unassigned or Sample)")
                 continue
 
             sheets = list_sheets_in_folder(drive_service, school_folder['id'])
             print(f"📁 School: {school_name} → {len(sheets)} sheet(s)")
-
             for sheet in sheets:
                 sheet_name = sheet.get("name", "").lower()
-
                 if "younger" in sheet_name:
                     category = "younger"
                     print(f"📘 Overriding category to 'younger' based on sheet name: {sheet['name']}")
@@ -124,17 +120,14 @@ if __name__ == "__main__":
                 else:
                     category = categorize_school(school_name)
                     print(f"📂 Using school name categorization: {school_name} → {category}")
-
                 try:
                     tabs = generate_sheet_tabs(sheets_service, sheet['id'])
                     print(f"🧾 Tabs in '{sheet['name']}': {list(tabs.keys())}")
-                    time.sleep(2)  # 💤 stronger delay
-
+                    time.sleep(2)
                     relevant_tabs = find_relevant_tabs(tabs)
                     if not relevant_tabs:
                         print(f"⚠️ No matching tabs in '{sheet['name']}' — skipping")
                         continue
-
                     links_dict[year_key][category].setdefault(school_name, {}).update({
                         tab_name: {
                             "sheet_link": f"https://docs.google.com/spreadsheets/d/{sheet['id']}/edit#gid={gid}",
@@ -143,18 +136,13 @@ if __name__ == "__main__":
                             "tab_name": tab_name
                         } for tab_name, gid in relevant_tabs.items()
                     })
-
                 except Exception as e:
                     print(f"❌ Failed processing sheet '{sheet['id']}' due to error: {e}")
-
-                time.sleep(2)  # 💤 again after full sheet processing
-
-    output_path = os.path.abspath(os.path.join(
-        os.path.dirname(__file__), "../..", "data", "configs", "links.yaml"
-    ))
+                time.sleep(2)
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
-
     with open(output_path, "w") as file:
         yaml.dump(links_dict, file, sort_keys=True)
-
     print(f"\n🎉 YAML successfully written to {output_path}")
+
+if __name__ == "__main__":
+    generate_links_yaml()

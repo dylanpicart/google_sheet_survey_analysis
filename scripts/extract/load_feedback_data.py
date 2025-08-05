@@ -7,75 +7,132 @@ from google.oauth2 import service_account
 import google.auth.transport.requests
 from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
+class FeedbackDataLoader:
+    SCOPES = [
+        'https://www.googleapis.com/auth/spreadsheets.readonly',
+        'https://www.googleapis.com/auth/drive.readonly'
+    ]
 
-# Path definitions
-DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..', 'data'))
-YAML_PATH = os.path.join(DATA_DIR, 'configs', 'links.yaml')
+    def __init__(self, data_dir=None, yaml_path=None, service_account_file=None, headers=None):
+        load_dotenv()
+        self.data_dir = data_dir or os.path.abspath(os.path.join(os.path.dirname(__file__), '../..', 'data'))
+        self.yaml_path = yaml_path or os.path.join(self.data_dir, 'configs', 'links.yaml')
+        self.service_account_file = service_account_file or os.getenv("GOOGLE_CREDS_PATH")
+        self.headers = headers or self._make_headers()
+        self._links_dict = None  # For @property
+        self.student_feedback_dict = {"older": {}, "younger": {}}
 
-# OAuth Credentials setup
-SERVICE_ACCOUNT_FILE = os.getenv("GOOGLE_CREDS_PATH")
+    def _make_headers(self):
+        credentials = service_account.Credentials.from_service_account_file(
+            self.service_account_file, scopes=self.SCOPES
+        )
+        auth_req = google.auth.transport.requests.Request()
+        credentials.refresh(auth_req)
+        return {'Authorization': f'Bearer {credentials.token}'}
 
-SCOPES = [
-    'https://www.googleapis.com/auth/spreadsheets.readonly',
-    'https://www.googleapis.com/auth/drive.readonly'
-]
+    def health_check(self):
+        problems = []
+        # Check YAML
+        if not os.path.exists(self.yaml_path):
+            problems.append(f"YAML config not found: {self.yaml_path}")
+        # Check data_dir
+        raw_dir = os.path.join(self.data_dir, 'raw')
+        try:
+            os.makedirs(raw_dir, exist_ok=True)
+            testfile = os.path.join(raw_dir, "test_perm.txt")
+            with open(testfile, "w") as f:
+                f.write("test")
+            os.remove(testfile)
+        except Exception as e:
+            problems.append(f"Data directory not writable: {raw_dir} ({e})")
+        # Check credentials
+        if not os.path.exists(self.service_account_file):
+            problems.append(f"Google service account file not found: {self.service_account_file}")
+        else:
+            try:
+                _ = self._make_headers()  # Just to check credentials load
+            except Exception as e:
+                problems.append(f"Failed to initialize credentials: {e}")
+        if problems:
+            raise RuntimeError("Health check failed:\n" + "\n".join(problems))
+        print("✅ Health check passed.")
+        return True
 
-credentials = service_account.Credentials.from_service_account_file(
-    SERVICE_ACCOUNT_FILE, scopes=SCOPES
-)
+    @property
+    def links_dict(self):
+        """
+        Loads links.yaml only on first access and caches the result.
+        Use .reload_links() to force refresh from disk.
+        """
+        if self._links_dict is None:
+            with open(self.yaml_path, 'r') as file:
+                self._links_dict = yaml.safe_load(file)
+        return self._links_dict
 
-auth_req = google.auth.transport.requests.Request()
-credentials.refresh(auth_req)
-headers = {'Authorization': f'Bearer {credentials.token}'}
+    def reload_links(self):
+        """Force reload links.yaml on next access."""
+        self._links_dict = None
 
-# Load YAML configuration
-with open(YAML_PATH, 'r') as file:
-    links_dict = yaml.safe_load(file)
+    def download_all(self, year=None, category=None, school=None, tab=None):
+        """Download all or filtered survey tabs based on links.yaml."""
+        self.health_check()
 
-# Dictionary to store DataFrames
-student_feedback_dict = {"older": {}, "younger": {}}
+        for y, categories in self.links_dict.items():
+            if year and str(y) != str(year):
+                continue
+            for cat, schools in categories.items():
+                if category and cat != category:
+                    continue
+                all_dfs = []
+                print(f"\n📅 Loading data for {y} - {cat}")
+                for school_name, tabs in schools.items():
+                    if school and school_name != school:
+                        continue
+                    for tab_name, details in tabs.items():
+                        if tab and tab_name != tab:
+                            continue
+                        sheet_id = details['sheet_id']
+                        gid = details['gid']
+                        csv_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv&gid={gid}"
 
-# Loop through years and categories
-for year, categories in links_dict.items():
-    for category, schools in categories.items():
-        all_dfs = []
-        print(f"\n📅 Loading data for {year} - {category}")
+                        print(f"⏳ Loading {school_name} - {tab_name}")
 
-        for school, tabs in schools.items():
-            for tab_name, details in tabs.items():
-                sheet_id = details['sheet_id']
-                gid = details['gid']
-                csv_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv&gid={gid}"
+                        try:
+                            response = requests.get(csv_url, headers=self.headers)
+                            response.raise_for_status()
+                            content = response.content.decode('utf-8', errors='replace')
+                            df = pd.read_csv(StringIO(content))
+                            df['School'] = school_name
+                            df['Year'] = y
+                            df['Tab'] = tab_name
+                            all_dfs.append(df)
+                            print(f"✅ Successfully loaded {school_name} - {tab_name}")
+                        except Exception as e:
+                            print(f"❌ Failed to load {school_name} - {tab_name}: {e}")
 
-                print(f"⏳ Loading {school} - {tab_name}")
+                if all_dfs:
+                    combined_df = pd.concat(all_dfs, ignore_index=True)
+                    self.student_feedback_dict[cat][y] = combined_df
+                    csv_path = os.path.join(self.data_dir, 'raw', cat, f"sy{y}_{cat}_feedback.csv")
+                    os.makedirs(os.path.dirname(csv_path), exist_ok=True)
+                    combined_df.to_csv(csv_path, index=False)
+                    print(f"💾 Saved combined DataFrame to {csv_path}")
+        return self.student_feedback_dict
 
-                try:
-                    response = requests.get(csv_url, headers=headers)
-                    response.raise_for_status()
+if __name__ == "__main__":
+    import argparse
 
-                    # Safely decode response content, handling emojis and other special chars
-                    content = response.content.decode('utf-8', errors='replace')
+    parser = argparse.ArgumentParser(description="Download all (or filtered) survey feedback CSVs from links.yaml.")
+    parser.add_argument("--year", help="Year to process (e.g., '21-22')", default=None)
+    parser.add_argument("--category", help="Category (older/younger)", default=None)
+    parser.add_argument("--school", help="School name to filter", default=None)
+    parser.add_argument("--tab", help="Tab name to filter", default=None)
 
-                    df = pd.read_csv(StringIO(content))
-                    df['School'] = school
-                    df['Year'] = year
-                    df['Tab'] = tab_name
-                    all_dfs.append(df)
-
-                    print(f"✅ Successfully loaded {school} - {tab_name}")
-
-                except Exception as e:
-                    print(f"❌ Failed to load {school} - {tab_name}: {e}")
-
-        # Concatenate and store in dictionary
-        if all_dfs:
-            combined_df = pd.concat(all_dfs, ignore_index=True)
-            student_feedback_dict[category][year] = combined_df
-
-            # Correct file naming with category and year
-            csv_path = os.path.join(DATA_DIR, 'raw', category, f"sy{year}_{category}_feedback.csv")
-            os.makedirs(os.path.dirname(csv_path), exist_ok=True)
-            combined_df.to_csv(csv_path, index=False)
-            print(f"💾 Saved combined DataFrame to {csv_path}")
+    args = parser.parse_args()
+    loader = FeedbackDataLoader()
+    loader.download_all(
+        year=args.year,
+        category=args.category,
+        school=args.school,
+        tab=args.tab
+    )

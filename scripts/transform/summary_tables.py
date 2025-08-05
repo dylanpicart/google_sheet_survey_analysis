@@ -33,14 +33,16 @@ def best_scale_match(observed_responses, scale_orders, threshold=0.6):
         return best_key, scale_orders[best_key]
     return None, None
 
-def value_count_table(df, columns, as_percent=False, round_to=1):
+def value_count_table(df, columns, as_percent=False, round_to=1, scale_orders=None):
+    if scale_orders is None:
+        scale_orders = SCALE_ORDERS
     if isinstance(columns, str):
         columns = [columns]
     all_summaries = []
     for col in columns:
         # Normalize responses for matching
         values = df[col].dropna().map(normalize).unique()
-        scale_key, order = best_scale_match(values, SCALE_ORDERS)
+        scale_key, order = best_scale_match(values, scale_orders)
         # If no good match, just use sorted observed values (original, not normalized)
         if order is None:
             order = sorted(df[col].dropna().unique(), key=lambda x: str(x))
@@ -66,39 +68,42 @@ def value_count_table(df, columns, as_percent=False, round_to=1):
 
     return summary_df
 
+def process_all_summaries(folders=None, scale_orders=None):
+    folders = folders or {
+        "younger": "data/processed/younger/",
+        "older": "data/processed/older/"
+    }
+    scale_orders = scale_orders or SCALE_ORDERS
 
-folders = {
-    "younger": "data/processed/younger/",
-    "older": "data/processed/older/"
-}
+    for group, folder in folders.items():
+        print(f"\n=== Checking group: {group} ===")
+        print(f"Folder: {folder}")
+        files_found = glob.glob(os.path.join(folder, '*.csv'))
+        print(f"Files found: {files_found}")
 
-for group, folder in folders.items():
-    print(f"\n=== Checking group: {group} ===")
-    print(f"Folder: {folder}")
-    files_found = glob.glob(os.path.join(folder, '*.csv'))
-    print(f"Files found: {files_found}")
+        summary_dir = os.path.join(folder, "summary")
+        os.makedirs(summary_dir, exist_ok=True)
+        csv_paths = glob.glob(os.path.join(folder, "*.csv"))
 
-    summary_dir = os.path.join(folder, "summary")
-    os.makedirs(summary_dir, exist_ok=True)
-    csv_paths = glob.glob(os.path.join(folder, "*.csv"))
+        for path in csv_paths:
+            base = os.path.splitext(os.path.basename(path))[0]
+            out_csv = os.path.join(summary_dir, f"{base}_summary.csv")
+            if os.path.basename(path).startswith("summary"):
+                print(f"  Skipping {path} (is a summary file)")
+                continue
+            print(f"  Processing {path}")
+            df = pd.read_csv(path)
+            df_simplified = df.copy()
+            df_simplified.columns = [simplify_column(c) for c in df_simplified.columns]
+            meta_cols = ["School Year", "School", "Grade", "Tab"]
+            question_cols = [c for c in df_simplified.columns if c not in meta_cols]
+            print(f"    Question columns: {question_cols}")
+            if not question_cols:
+                print("    No question columns found. Skipping.")
+                continue
+            summary = value_count_table(df_simplified, question_cols, scale_orders=scale_orders)
+            summary.to_csv(out_csv, index=False)
+            print(f"    Saved summary to {out_csv}\n")
 
-    for path in csv_paths:
-        base = os.path.splitext(os.path.basename(path))[0]
-        out_csv = os.path.join(summary_dir, f"{base}_summary.csv")
-        if os.path.basename(path).startswith("summary"):
-            print(f"  Skipping {path} (is a summary file)")
-            continue
-        print(f"  Processing {path}")
-        df = pd.read_csv(path)
-        df_simplified = df.copy()
-        df_simplified.columns = [simplify_column(c) for c in df_simplified.columns]
-        meta_cols = ["School Year", "School", "Grade", "Tab"]
-        question_cols = [c for c in df_simplified.columns if c not in meta_cols]
-        print(f"    Question columns: {question_cols}")
-        if not question_cols:
-            print("    No question columns found. Skipping.")
-            continue
-        summary = value_count_table(df_simplified, question_cols)
-        summary.to_csv(out_csv, index=False)
-        print(f"    Saved summary to {out_csv}\n")
-
+if __name__ == "__main__":
+    process_all_summaries()

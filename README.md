@@ -39,7 +39,7 @@ root/
 ├── .gitignore               # Files and folders excluded from git
 ├── README.md                # Project overview and documentation
 ├── SECURITY.md              # Security and responsible disclosure policy
-├── requirements.txt         # Python dependencies
+└── requirements.txt         # Python dependencies
 
 ```
 ---
@@ -324,7 +324,6 @@ Keep logs of all dropped or transformed data for full transparency!
 * **Percentages and rates:** Compute %Yes/No/Maybe per group/year/option.
 * **Longitudinal tracking:** Analyze trends in responses across years and cohorts.
 * **Visualization:** Use Excel or Python/Streamlit dashboards for charts, pivots, and interactive summaries.
-* **Modularity & Testability** Refactor modules in order to pass unit testing.
 
 ---
 

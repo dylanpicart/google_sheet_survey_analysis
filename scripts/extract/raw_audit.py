@@ -8,8 +8,11 @@ from data.configs import (
     build_lookup,
     audit_and_clean_columns,
 )
+import os
 
-def audit_questions_and_write_csv(mapping, mapping_name, csv_paths, output_csv, output_excel):
+def audit_questions_and_write_csv(
+    mapping, mapping_name, csv_paths, output_csv, output_excel
+):
     lookup = build_lookup(mapping)
     question_cleaned_samples = defaultdict(set)
     question_raw_samples = defaultdict(set)
@@ -19,7 +22,6 @@ def audit_questions_and_write_csv(mapping, mapping_name, csv_paths, output_csv, 
     for path in csv_paths:
         df = pd.read_csv(path)
         for col in df.columns:
-
             # Only standardize for grade columns (case-insensitive match)
             if col.strip().lower() in GRADE_COLS:
                 raw_samples = [clean_grade(s) for s in df[col].dropna().unique()]
@@ -50,7 +52,9 @@ def audit_questions_and_write_csv(mapping, mapping_name, csv_paths, output_csv, 
                 samples_str
             ])
         else:
-            suggestions = "; ".join([f"{sug} ({score:.0f}%)" for sug, score in res["suggestions"]]) if res["suggestions"] else "No good suggestions"
+            suggestions = "; ".join(
+                [f"{sug} ({score:.0f}%)" for sug, score in res["suggestions"]]
+            ) if res["suggestions"] else "No good suggestions"
             output_rows.append([
                 q,
                 "",
@@ -63,31 +67,32 @@ def audit_questions_and_write_csv(mapping, mapping_name, csv_paths, output_csv, 
     ])
 
     def has_real_sample(sample_str):
-        # Checks for any non-empty (non-whitespace) sample in the '|' separated list
         return any(s.strip() != "" for s in str(sample_str).split("|"))
 
     df_out_filtered = df_out[df_out["Sample Responses"].apply(has_real_sample)].copy()
 
-    # Overwrite CSV/Excel with filtered rows only
+    os.makedirs(os.path.dirname(output_csv), exist_ok=True)
     df_out_filtered.to_csv(output_csv, index=False)
     df_out_filtered.to_excel(output_excel, index=False)
     print(f"{mapping_name} audit complete. Output written to {output_csv} and {output_excel}.")
 
-# Paths for older and younger CSVs
-younger_csv_paths = glob.glob("data/raw/younger/*.csv", recursive=True)
-older_csv_paths   = glob.glob("data/raw/older/*.csv", recursive=True)
+def main():
+    younger_csv_paths = glob.glob("data/raw/younger/*.csv", recursive=True)
+    older_csv_paths   = glob.glob("data/raw/older/*.csv", recursive=True)
+    audit_questions_and_write_csv(
+        YOUNGER_QUESTION_MAPPING,
+        "Younger",
+        younger_csv_paths,
+        "data/processed/audit/question_samples_audit_younger.csv",
+        "data/processed/audit/question_samples_audit_younger.xlsx"
+    )
+    audit_questions_and_write_csv(
+        OLDER_QUESTION_MAPPING,
+        "Older",
+        older_csv_paths,
+        "data/processed/audit/question_samples_audit_older.csv",
+        "data/processed/audit/question_samples_audit_older.xlsx"
+    )
 
-audit_questions_and_write_csv(
-    YOUNGER_QUESTION_MAPPING,
-    "Younger",
-    younger_csv_paths,
-    "data/processed/audit/question_samples_audit_younger.csv",
-    "data/processed/audit/question_samples_audit_younger.xlsx"
-)
-audit_questions_and_write_csv(
-    OLDER_QUESTION_MAPPING,
-    "Older",
-    older_csv_paths,
-    "data/processed/audit/question_samples_audit_older.csv",
-    "data/processed/audit/question_samples_audit_older.xlsx"
-)
+if __name__ == "__main__":
+    main()
