@@ -40,3 +40,7 @@ clean:
 
 test:
 	pytest -v
+
+lint:
+	ruff check . && flake8 . && bandit -r .
+
