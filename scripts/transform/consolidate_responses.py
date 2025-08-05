@@ -2,7 +2,7 @@ import pandas as pd
 import os
 import unicodedata
 import re
-from summary_tables import SCALE_ORDERS
+from data.configs import SCALE_ORDERS
 from utils import normalize_text
 
 
@@ -66,7 +66,7 @@ def consolidate_summary(input_csv, output_csv):
     bucket_to_cols = {}
     for col in columns:
         if col == question_col: continue
-        mapped = SUMMARY_MAP.get(norm(col), None)
+        mapped = SUMMARY_MAP.get(normalize_text(col), None)
         if mapped:
             bucket_to_cols.setdefault(mapped, []).append(col)
 

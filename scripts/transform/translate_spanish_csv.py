@@ -5,7 +5,6 @@ import unicodedata
 import re
 
 # Import mappings
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 from data.configs import EN_SP_MAPPING, ANSWER_MAPPING, cols_to_drop
 from utils import normalize_text
 

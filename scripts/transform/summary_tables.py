@@ -73,6 +73,11 @@ folders = {
 }
 
 for group, folder in folders.items():
+    print(f"\n=== Checking group: {group} ===")
+    print(f"Folder: {folder}")
+    files_found = glob.glob(os.path.join(folder, '*.csv'))
+    print(f"Files found: {files_found}")
+
     summary_dir = os.path.join(folder, "summary")
     os.makedirs(summary_dir, exist_ok=True)
     csv_paths = glob.glob(os.path.join(folder, "*.csv"))
@@ -80,17 +85,20 @@ for group, folder in folders.items():
     for path in csv_paths:
         base = os.path.splitext(os.path.basename(path))[0]
         out_csv = os.path.join(summary_dir, f"{base}_summary.csv")
-        if os.path.basename(path).startswith("summary") or os.path.exists(out_csv):
+        if os.path.basename(path).startswith("summary"):
+            print(f"  Skipping {path} (is a summary file)")
             continue
-        print(f"Processing {path}")
+        print(f"  Processing {path}")
         df = pd.read_csv(path)
         df_simplified = df.copy()
         df_simplified.columns = [simplify_column(c) for c in df_simplified.columns]
         meta_cols = ["School Year", "School", "Grade", "Tab"]
         question_cols = [c for c in df_simplified.columns if c not in meta_cols]
+        print(f"    Question columns: {question_cols}")
         if not question_cols:
-            print("  No question columns found. Skipping.")
+            print("    No question columns found. Skipping.")
             continue
         summary = value_count_table(df_simplified, question_cols)
         summary.to_csv(out_csv, index=False)
-        print(f"  Saved summary to {out_csv}\n")
+        print(f"    Saved summary to {out_csv}\n")
+

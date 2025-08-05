@@ -1,6 +1,6 @@
 import pandas as pd
 import os
-from data.configs.question_mappings import QCON_MAP, RESCON_MAPPING
+from data.configs import QCON_MAP, RESCON_MAPPING
 
 def standardize_df(df, year):
     df.rename(columns=lambda x: x.strip(), inplace=True)
@@ -36,7 +36,7 @@ def standardize_df(df, year):
     response_cols = [col for col in df.columns if col not in ["Canonical Question", "School Year"]]
     return df[['School Year', 'Canonical Question'] + response_cols]
 
-canon_to_over_df = pd.read_csv("data/processed/canonical_to_raw_overarching.csv")
+canon_to_over_df = pd.read_csv("data/processed/audit/canonical_to_raw_overarching.csv")
 canon_to_over_map = dict(zip(
     canon_to_over_df["Canonical Question"].str.strip().str.lower(),
     canon_to_over_df["Overarching"].str.strip().str.lower(),

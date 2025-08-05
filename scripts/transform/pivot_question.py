@@ -1,7 +1,8 @@
 import pandas as pd
+from data.configs import complicated_path
 
 # Load the summary file
-df = pd.read_csv("data/processed/older/summary/sy21-22_OLDER_ENGLISH_questions_summary.csv")
+df = pd.read_csv(complicated_path)
 
 ignore_columns = [
     "All the time", "A lot of the time", "Sometimes", "Not at all",
