@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      PYTHONPATH: .:./scripts  # So tests can import scripts, utils, etc.
+      PYTHONPATH: .
 
     steps:
       - name: Checkout code
@@ -27,6 +27,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install ruff flake8 bandit pip-audit pytest-cov
+
+      # --- Dummy config copy for CI ---
+      - name: Set up dummy config for CI
+        run: |
+          cp data/configs/conf_variables.example.py data/configs/conf_variables.py
+          cp data/configs/question_mappings.example.py data/configs/question_mappings.py
 
       - name: Run Ruff linter
         run: |

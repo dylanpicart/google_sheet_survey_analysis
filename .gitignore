@@ -24,7 +24,9 @@ data/raw_feedback/
 data/raw/
 data/processed/
 data/interim/
-data/configs/
+data/configs/conf_variables.py
+data/configs/questions_mappings.py
+data/configs/links.yaml
 *.csv
 *.xlsx
 *.xls
