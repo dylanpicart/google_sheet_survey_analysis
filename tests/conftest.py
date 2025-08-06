@@ -1,6 +1,9 @@
 import pytest
 import pandas as pd
 import yaml
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
 ############################
 # Dummy Data and Mappings  #
