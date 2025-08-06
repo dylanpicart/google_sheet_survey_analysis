@@ -42,5 +42,7 @@ test:
 	pytest -v
 
 lint:
-	ruff check . && flake8 . && bandit -r .
+	ruff check . --fix
+	flake8 scripts/ tests/ utils/
+	bandit -r scripts/ utils/
 

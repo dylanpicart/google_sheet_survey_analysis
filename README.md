@@ -1,6 +1,9 @@
-# Google Sheet Survey ETL Analysis
+# Google Sheet Survey ETL Pipeline
 
-This project provides a robust, reproducible ETL (Extract, Transform, Load) pipeline for end-to-end analysis of multi-year, multi-language Google Sheet survey data, including raw extraction, cleaning, canonical mapping, advanced summaries, and executive-ready Excel outputs.
+[![CI](https://github.com/dylanpicart/google_sheet_survey_pipeline/actions/workflows/ci.yml/badge.svg)](https://github.com/dylanpicart/google_sheet_survey_pipeline/actions/workflows/ci.yml)
+
+
+This project provides a robust, DevSecOps-ready reproducible ETL (Extract, Transform, Load) pipeline for end-to-end analysis of multi-year, multi-language Google Sheet survey data, including raw extraction, cleaning, canonical mapping, advanced summaries, and executive-ready Excel outputs.
 
 ---
 
@@ -328,6 +331,36 @@ logs/
 * **Info, warning, and error messages** are captured, including which files were processed, skipped, or had issues.
 * **Error logs** make it easy to spot and debug failed data loads, missing columns, or API problems.
 * Logs rotate automatically to prevent disk overflows.
+
+---
+
+## 🚦 Continuous Integration & Quality Assurance
+
+This project uses **GitHub Actions** for full CI/CD, automated linting, and security checks:
+
+- **On every push or pull request:**
+  - All code is linted with [Ruff](https://github.com/astral-sh/ruff) and [Flake8](https://flake8.pycqa.org/).
+  - Security is checked with [Bandit](https://bandit.readthedocs.io/) and [pip-audit](https://pypi.org/project/pip-audit/).
+  - All tests are run with [pytest](https://pytest.org/), including code coverage reports.
+  - Logs and coverage reports are uploaded as build artifacts on failure.
+
+You can view build status, logs, and artifacts on the [Actions tab](https://github.com/yourusername/google_sheet_survey_pipeline/actions).
+
+---
+
+## 🧹 Linting & Formatting
+
+**Code is autoformatted and style-enforced with:**
+- [Black](https://black.readthedocs.io/en/stable/) (for code style, line length, and blank lines)
+- [Ruff](https://github.com/astral-sh/ruff) (for code hygiene and unused code removal)
+- [Flake8](https://flake8.pycqa.org/) (for PEP8 and custom style rules)
+
+**To lint and auto-fix your code locally:**
+```bash
+black . --line-length 120
+ruff check scripts/ tests/ utils/ --fix
+flake8 scripts/ tests/ utils/
+bandit -r scripts/ utils/
 
 ---
 

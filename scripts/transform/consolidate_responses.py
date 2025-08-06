@@ -4,6 +4,7 @@ from utils import normalize_text, setup_logging
 
 logger = setup_logging("transform")
 
+
 def get_summary_col_mapping(scale_orders):
     summary_map = {}
 
@@ -11,22 +12,16 @@ def get_summary_col_mapping(scale_orders):
         "All the time": ["Very Frequently (every day or almost every day)", "All the time"],
         "A lot of the time": ["Frequently (several times a week)", "A lot of the time", "A lot"],
         "Sometimes": [" Rarely (less than once a week) ", "Occasionally (around once a week)", "Sometimes", "A little"],
-        "Not at all": ["Not at All", "Not at all"]
+        "Not at all": ["Not at All", "Not at all"],
     }
     for bucket, variants in frequency_map.items():
         for v in variants:
             summary_map[normalize_text(v)] = bucket
 
     # Likert 3-bucket mapping
-    disagree_keys = [
-        "Strongly Disagree", "Disagree", "Disagree a lot", "Disagree a little"
-    ]
-    neither_keys = [
-        "Neither Agree nor Disagree", "Neither", "No change was needed", "Neither Agree Nor Disgree"
-    ]
-    agree_keys = [
-        "Agree", "Agree some of the time", "Agree a lot", "Strongly Agree"
-    ]
+    disagree_keys = ["Strongly Disagree", "Disagree", "Disagree a lot", "Disagree a little"]
+    neither_keys = ["Neither Agree nor Disagree", "Neither", "No change was needed", "Neither Agree Nor Disgree"]
+    agree_keys = ["Agree", "Agree some of the time", "Agree a lot", "Strongly Agree"]
     for scale in scale_orders:
         for v in scale_orders[scale]:
             nv = normalize_text(v)
@@ -45,19 +40,18 @@ def get_summary_col_mapping(scale_orders):
                     summary_map[nv] = "Maybe"
     return summary_map
 
+
 def load_canon_to_over_map(path):
     canon_to_over_df = pd.read_csv(path)
-    return dict(zip(
-        canon_to_over_df["Canonical Question"].str.strip().str.lower(),
-        canon_to_over_df["Overarching"].str.strip().str.lower(),
-    ))
+    return dict(
+        zip(
+            canon_to_over_df["Canonical Question"].str.strip().str.lower(),
+            canon_to_over_df["Overarching"].str.strip().str.lower(),
+        )
+    )
 
-def consolidate_summary(
-    input_csv,
-    output_csv,
-    summary_map,
-    canon_to_over_map
-):
+
+def consolidate_summary(input_csv, output_csv, summary_map, canon_to_over_map):
     df = pd.read_csv(input_csv)
     question_col = df.columns[0]
     columns = list(df.columns)
@@ -71,8 +65,16 @@ def consolidate_summary(
     buckets = list(bucket_to_cols.keys())
 
     desired_order = [
-        "All the time", "A lot of the time", "Sometimes", "Not at all",
-        "Agree", "Neither Agree Nor Disagree", "Disagree", "Yes", "Maybe", "No"
+        "All the time",
+        "A lot of the time",
+        "Sometimes",
+        "Not at all",
+        "Agree",
+        "Neither Agree Nor Disagree",
+        "Disagree",
+        "Yes",
+        "Maybe",
+        "No",
     ]
     output_order = ["Column"] + [c for c in desired_order if c in buckets]
 
@@ -101,6 +103,7 @@ def consolidate_summary(
     consolidated.to_csv(output_csv, index=False)
     logger.info(f"Saved consolidated summary: {output_csv}")
 
+
 def batch_consolidate_summary(summary_dir, summary_map, canon_to_over_map):
     summary_files = [f for f in os.listdir(summary_dir) if f.endswith(".csv")]
     outdir = os.path.join(summary_dir, "cons_resp")
@@ -110,9 +113,11 @@ def batch_consolidate_summary(summary_dir, summary_map, canon_to_over_map):
         outfile = os.path.join(outdir, f.replace("_summary", "_consolidated_summary"))
         consolidate_summary(infile, outfile, summary_map, canon_to_over_map)
 
+
 if __name__ == "__main__":
     # Load project mappings
     from data.configs import SCALE_ORDERS
+
     summary_map = get_summary_col_mapping(SCALE_ORDERS)
     canon_to_over_map = load_canon_to_over_map("data/processed/audit/canonical_to_raw_overarching.csv")
     batch_consolidate_summary("data/processed/younger/summary", summary_map, canon_to_over_map)

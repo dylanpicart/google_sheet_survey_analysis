@@ -6,6 +6,7 @@ from utils import setup_logging
 
 logger = setup_logging("load")
 
+
 def extract_year_and_group(filename):
     m = re.search(r"sy(\d{2}-\d{2})_(OLDER|YOUNGER)", filename, re.I)
     if m:
@@ -14,14 +15,15 @@ def extract_year_and_group(filename):
         return year, group
     return "Unknown", "Unknown"
 
+
 def write_master_excel(
     output_master,
     master_totals_path,
     older_summary_path,
     younger_summary_path,
-    responses_dirs  # e.g., {"younger": "...", "older": "..."}
+    responses_dirs,  # e.g., {"younger": "...", "older": "..."}
 ):
-    with pd.ExcelWriter(output_master, engine='xlsxwriter') as writer:
+    with pd.ExcelWriter(output_master, engine="xlsxwriter") as writer:
         # 1. Master Summary
         if os.path.exists(master_totals_path):
             df = pd.read_csv(master_totals_path)
@@ -56,22 +58,21 @@ def write_master_excel(
 
     logger.info(f"Saved SF_Master_Summary Excel to: {output_master}")
 
+
 def main():
     output_master = "data/processed/SF_Master_Summary.xlsx"
     master_totals_path = "data/processed/canonical_question_totals.csv"
     older_summary_path = "data/processed/consolidated_questions_older.csv"
     younger_summary_path = "data/processed/consolidated_questions_younger.csv"
-    responses_dirs = {
-        "younger": "data/processed/younger",
-        "older": "data/processed/older"
-    }
+    responses_dirs = {"younger": "data/processed/younger", "older": "data/processed/older"}
     write_master_excel(
         output_master=output_master,
         master_totals_path=master_totals_path,
         older_summary_path=older_summary_path,
         younger_summary_path=younger_summary_path,
-        responses_dirs=responses_dirs
+        responses_dirs=responses_dirs,
     )
+
 
 if __name__ == "__main__":
     main()

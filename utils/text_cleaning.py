@@ -2,50 +2,48 @@ import re
 import numpy as np
 import pandas as pd
 
+
 def remove_emojis(text):
     if not isinstance(text, str):
         return text
     emoji_pattern = re.compile(
         "["
-        "\U0001F600-\U0001F64F"  # emoticons
-        "\U0001F300-\U0001F5FF"  # symbols & pictographs
-        "\U0001F680-\U0001F6FF"  # transport & map symbols
-        "\U0001F1E0-\U0001F1FF"  # flags (iOS)
-        "\U00002700-\U000027BF"  # Dingbats
-        "\U000024C2-\U0001F251"  # Enclosed characters
+        "\U0001f600-\U0001f64f"  # emoticons
+        "\U0001f300-\U0001f5ff"  # symbols & pictographs
+        "\U0001f680-\U0001f6ff"  # transport & map symbols
+        "\U0001f1e0-\U0001f1ff"  # flags (iOS)
+        "\U00002700-\U000027bf"  # Dingbats
+        "\U000024c2-\U0001f251"  # Enclosed characters
         "]+",
-        flags=re.UNICODE
+        flags=re.UNICODE,
     )
-    return emoji_pattern.sub(r'', text)
+    return emoji_pattern.sub(r"", text)
+
 
 def is_sample_or_metadata(text):
     if not isinstance(text, str):
         return False
     # Add more "junk" or "metadata" patterns as needed
-    patterns = [
-        r"\bsample\b",
-        r"dhdhdghd",
-        r"asdasd",
-        r"\bfake\b",
-        r"\btest\b"
-    ]
+    patterns = [r"\bsample\b", r"dhdhdghd", r"asdasd", r"\bfake\b", r"\btest\b"]
     text_lower = text.lower()
     for pattern in patterns:
         if re.search(pattern, text_lower):
             return True
     return False
 
+
 def clean_text(text):
     """Cleans emojis and sample/metadata patterns, robust to NaN and non-strings."""
     if not isinstance(text, str):
         if pd.isna(text):
             return np.nan  # preserve NaN if that's what you want
-        return ""         # for floats/ints/None, treat as blank string
+        return ""  # for floats/ints/None, treat as blank string
 
     text = remove_emojis(text)
     if is_sample_or_metadata(text):
         return ""  # or np.nan, or "REMOVED"
     return text.strip()
+
 
 def clean_grade(val):
     val = str(val).strip().upper()

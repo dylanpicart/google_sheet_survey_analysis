@@ -1,10 +1,11 @@
 import pandas as pd
-from pathlib import Path
 from scripts.load.load_to_excel import write_master_excel
 import openpyxl
 
+
 def make_csv(path, data):
     pd.DataFrame(data).to_csv(path, index=False)
+
 
 def test_write_master_excel_creates_workbook(tmp_path):
     data_dir = tmp_path / "data" / "processed"
@@ -12,26 +13,20 @@ def test_write_master_excel_creates_workbook(tmp_path):
 
     # 1. Master totals
     master_totals = data_dir / "canonical_question_totals.csv"
-    make_csv(master_totals, {
-        "Canonical Question": ["Q1", "Q2"],
-        "Agree": [1, 2], "Disagree": [0, 1], "Overarching": ["O1", "O2"]
-    })
+    make_csv(
+        master_totals,
+        {"Canonical Question": ["Q1", "Q2"], "Agree": [1, 2], "Disagree": [0, 1], "Overarching": ["O1", "O2"]},
+    )
 
     # 2. Group summaries
     summary_older = data_dir / "consolidated_questions_older.csv"
     summary_younger = data_dir / "consolidated_questions_younger.csv"
-    make_csv(summary_older, {
-        "Canonical Question": ["Q1"], "Agree": [1], "Disagree": [0], "Overarching": ["O1"]
-    })
-    make_csv(summary_younger, {
-        "Canonical Question": ["Q2"], "Agree": [2], "Disagree": [1], "Overarching": ["O2"]
-    })
+    make_csv(summary_older, {"Canonical Question": ["Q1"], "Agree": [1], "Disagree": [0], "Overarching": ["O1"]})
+    make_csv(summary_younger, {"Canonical Question": ["Q2"], "Agree": [2], "Disagree": [1], "Overarching": ["O2"]})
 
     # 3. Response CSVs (simulate pattern-matching filenames)
     for fname in ["sy23-24_OLDER.csv", "sy23-24_YOUNGER.csv"]:
-        make_csv(data_dir / fname, {
-            "Canonical Question": ["Q1"], "Agree": [5], "Disagree": [2]
-        })
+        make_csv(data_dir / fname, {"Canonical Question": ["Q1"], "Agree": [5], "Disagree": [2]})
 
     output_master = data_dir / "SF_Master_Summary.xlsx"
     write_master_excel(
@@ -39,10 +34,7 @@ def test_write_master_excel_creates_workbook(tmp_path):
         master_totals_path=str(master_totals),
         older_summary_path=str(summary_older),
         younger_summary_path=str(summary_younger),
-        responses_dirs={
-            "older": str(data_dir),
-            "younger": str(data_dir)
-        }
+        responses_dirs={"older": str(data_dir), "younger": str(data_dir)},
     )
 
     # Check: Excel file created

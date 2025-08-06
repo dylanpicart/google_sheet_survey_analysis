@@ -1,0 +1,14 @@
+[tool.ruff]
+exclude = [
+    ".venv",
+    "venv",
+    "env",
+    ".env",
+    "site-packages",
+    "build",
+    "dist",
+    "logs",
+    ".git",
+    "__pycache__",
+]
+line-length = 120

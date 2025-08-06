@@ -2,7 +2,7 @@ import os
 import pandas as pd
 import glob
 from collections import defaultdict
-from utils import clean_text, clean_grade, setup_logging  
+from utils import clean_text, clean_grade, setup_logging
 from data.configs import (
     YOUNGER_QUESTION_MAPPING,
     OLDER_QUESTION_MAPPING,
@@ -12,9 +12,8 @@ from data.configs import (
 
 logger = setup_logging("extract")
 
-def audit_questions_and_write_csv(
-    mapping, mapping_name, csv_paths, output_csv, output_excel
-):
+
+def audit_questions_and_write_csv(mapping, mapping_name, csv_paths, output_csv, output_excel):
     lookup = build_lookup(mapping)
     question_cleaned_samples = defaultdict(set)
     question_raw_samples = defaultdict(set)
@@ -47,26 +46,18 @@ def audit_questions_and_write_csv(
         samples_str = " | ".join(map(str, question_cleaned_samples[q]))
         res = audit[q]
         if res["canonical"]:
-            output_rows.append([
-                q,
-                res["canonical"],
-                res["reason"],
-                samples_str
-            ])
+            output_rows.append([q, res["canonical"], res["reason"], samples_str])
         else:
-            suggestions = "; ".join(
-                [f"{sug} ({score:.0f}%)" for sug, score in res["suggestions"]]
-            ) if res["suggestions"] else "No good suggestions"
-            output_rows.append([
-                q,
-                "",
-                suggestions,
-                samples_str
-            ])
+            suggestions = (
+                "; ".join([f"{sug} ({score:.0f}%)" for sug, score in res["suggestions"]])
+                if res["suggestions"]
+                else "No good suggestions"
+            )
+            output_rows.append([q, "", suggestions, samples_str])
     # Convert to DataFrame
-    df_out = pd.DataFrame(output_rows, columns=[
-        "Raw Question", "Canonical Mapping", "Reason/Suggestions", "Sample Responses"
-    ])
+    df_out = pd.DataFrame(
+        output_rows, columns=["Raw Question", "Canonical Mapping", "Reason/Suggestions", "Sample Responses"]
+    )
 
     def has_real_sample(sample_str):
         return any(s.strip() != "" for s in str(sample_str).split("|"))
@@ -78,23 +69,25 @@ def audit_questions_and_write_csv(
     df_out_filtered.to_excel(output_excel, index=False)
     logger.info(f"{mapping_name} audit complete. Output written to {output_csv} and {output_excel}.")
 
+
 def main():
     younger_csv_paths = glob.glob("data/raw/younger/*.csv", recursive=True)
-    older_csv_paths   = glob.glob("data/raw/older/*.csv", recursive=True)
+    older_csv_paths = glob.glob("data/raw/older/*.csv", recursive=True)
     audit_questions_and_write_csv(
         YOUNGER_QUESTION_MAPPING,
         "Younger",
         younger_csv_paths,
         "data/processed/audit/question_samples_audit_younger.csv",
-        "data/processed/audit/question_samples_audit_younger.xlsx"
+        "data/processed/audit/question_samples_audit_younger.xlsx",
     )
     audit_questions_and_write_csv(
         OLDER_QUESTION_MAPPING,
         "Older",
         older_csv_paths,
         "data/processed/audit/question_samples_audit_older.csv",
-        "data/processed/audit/question_samples_audit_older.xlsx"
+        "data/processed/audit/question_samples_audit_older.xlsx",
     )
+
 
 if __name__ == "__main__":
     main()

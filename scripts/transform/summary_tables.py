@@ -7,14 +7,17 @@ from utils import setup_logging
 
 logger = setup_logging("transform")
 
+
 def simplify_column(col):
-    match = re.search(r'\[(.*?)\]', col)
+    match = re.search(r"\[(.*?)\]", col)
     return match.group(1) if match else col
+
 
 def normalize(val):
     if pd.isnull(val):
         return val
     return str(val).strip().lower()
+
 
 def best_scale_match(observed_responses, scale_orders, threshold=0.6):
     observed_norm = set(normalize(x) for x in observed_responses if pd.notnull(x))
@@ -35,6 +38,7 @@ def best_scale_match(observed_responses, scale_orders, threshold=0.6):
     if best_score >= threshold:
         return best_key, scale_orders[best_key]
     return None, None
+
 
 def value_count_table(df, columns, as_percent=False, round_to=1, scale_orders=None):
     if scale_orders is None:
@@ -71,17 +75,15 @@ def value_count_table(df, columns, as_percent=False, round_to=1, scale_orders=No
 
     return summary_df
 
+
 def process_all_summaries(folders=None, scale_orders=None):
-    folders = folders or {
-        "younger": "data/processed/younger/",
-        "older": "data/processed/older/"
-    }
+    folders = folders or {"younger": "data/processed/younger/", "older": "data/processed/older/"}
     scale_orders = scale_orders or SCALE_ORDERS
 
     for group, folder in folders.items():
         logger.info(f"\n=== Checking group: {group} ===")
         logger.info(f"Folder: {folder}")
-        files_found = glob.glob(os.path.join(folder, '*.csv'))
+        files_found = glob.glob(os.path.join(folder, "*.csv"))
         logger.info(f"Files found: {files_found}")
 
         summary_dir = os.path.join(folder, "summary")
@@ -107,6 +109,7 @@ def process_all_summaries(folders=None, scale_orders=None):
             summary = value_count_table(df_simplified, question_cols, scale_orders=scale_orders)
             summary.to_csv(out_csv, index=False)
             logger.info(f"    Saved summary to {out_csv}\n")
+
 
 if __name__ == "__main__":
     process_all_summaries()

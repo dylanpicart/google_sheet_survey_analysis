@@ -1,0 +1,4 @@
+[flake8]
+exclude = .venv,venv,env,.env,site-packages,build,dist,.git,__pycache__,logs,data,*.egg-info
+max-line-length = 120
+ignore = E203, W503, E302, E303, W391

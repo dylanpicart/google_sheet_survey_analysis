@@ -1,6 +1,6 @@
 import pandas as pd
-import os
 from scripts.transform.consolidate_questions import consolidate_questions
+
 
 def test_consolidate_questions_groupby(tmp_path):
     # Set up dummy per-year input CSVs
@@ -9,11 +9,7 @@ def test_consolidate_questions_groupby(tmp_path):
     input_dir = tmp_path / group / "summary" / "cons_resp"
     input_dir.mkdir(parents=True, exist_ok=True)
     input_fp = input_dir / f"sy{year}_{group.upper()}_ENGLISH_questions_consolidated_summary.csv"
-    pd.DataFrame({
-        "Column": ["A", "A", "B"],
-        "Agree": [2, 3, 1],
-        "Disagree": [0, 1, 1]
-    }).to_csv(input_fp, index=False)
+    pd.DataFrame({"Column": ["A", "A", "B"], "Agree": [2, 3, 1], "Disagree": [0, 1, 1]}).to_csv(input_fp, index=False)
 
     # Dummy mappings
     qcon_map = {"A": "A", "B": "B"}
@@ -30,7 +26,7 @@ def test_consolidate_questions_groupby(tmp_path):
         qcon_map=qcon_map,
         rescon_mapping=rescon_mapping,
         canon_to_over_map=canon_to_over_map,
-        output_file=str(output_fp)
+        output_file=str(output_fp),
     )
 
     # Assert output exists and has correct columns/mapping

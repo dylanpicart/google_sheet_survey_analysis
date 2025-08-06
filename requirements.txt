@@ -36,3 +36,7 @@ streamlit
 packaging
 pytest
 pytest-cov
+flake8
+ruff
+black
+bandit

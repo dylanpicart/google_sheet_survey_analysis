@@ -75,3 +75,6 @@ __pypackages__/
 
 # === PyTest Cache ===
 .pytest_cache/
+
+# === Ruff Cache ===
+.ruff_cache/

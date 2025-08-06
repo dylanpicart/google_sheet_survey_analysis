@@ -10,16 +10,14 @@ from utils import setup_logging
 
 logger = setup_logging("extract")
 
+
 class FeedbackDataLoader:
-    SCOPES = [
-        'https://www.googleapis.com/auth/spreadsheets.readonly',
-        'https://www.googleapis.com/auth/drive.readonly'
-    ]
+    SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly", "https://www.googleapis.com/auth/drive.readonly"]
 
     def __init__(self, data_dir=None, yaml_path=None, service_account_file=None, headers=None):
         load_dotenv()
-        self.data_dir = data_dir or os.path.abspath(os.path.join(os.path.dirname(__file__), '../..', 'data'))
-        self.yaml_path = yaml_path or os.path.join(self.data_dir, 'configs', 'links.yaml')
+        self.data_dir = data_dir or os.path.abspath(os.path.join(os.path.dirname(__file__), "../..", "data"))
+        self.yaml_path = yaml_path or os.path.join(self.data_dir, "configs", "links.yaml")
         self.service_account_file = service_account_file or os.getenv("GOOGLE_CREDS_PATH")
         self.headers = headers or self._make_headers()
         self._links_dict = None  # For @property
@@ -31,7 +29,7 @@ class FeedbackDataLoader:
         )
         auth_req = google.auth.transport.requests.Request()
         credentials.refresh(auth_req)
-        return {'Authorization': f'Bearer {credentials.token}'}
+        return {"Authorization": f"Bearer {credentials.token}"}
 
     def health_check(self):
         problems = []
@@ -39,7 +37,7 @@ class FeedbackDataLoader:
         if not os.path.exists(self.yaml_path):
             problems.append(f"YAML config not found: {self.yaml_path}")
         # Check data_dir
-        raw_dir = os.path.join(self.data_dir, 'raw')
+        raw_dir = os.path.join(self.data_dir, "raw")
         try:
             os.makedirs(raw_dir, exist_ok=True)
             testfile = os.path.join(raw_dir, "test_perm.txt")
@@ -70,7 +68,7 @@ class FeedbackDataLoader:
         Use .reload_links() to force refresh from disk.
         """
         if self._links_dict is None:
-            with open(self.yaml_path, 'r') as file:
+            with open(self.yaml_path, "r") as file:
                 self._links_dict = yaml.safe_load(file)
         return self._links_dict
 
@@ -96,20 +94,20 @@ class FeedbackDataLoader:
                     for tab_name, details in tabs.items():
                         if tab and tab_name != tab:
                             continue
-                        sheet_id = details['sheet_id']
-                        gid = details['gid']
+                        sheet_id = details["sheet_id"]
+                        gid = details["gid"]
                         csv_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv&gid={gid}"
 
                         logger.info(f"⏳ Loading {school_name} - {tab_name}")
 
                         try:
-                            response = requests.get(csv_url, headers=self.headers)
+                            response = requests.get(csv_url, headers=self.headers, timeout=15)
                             response.raise_for_status()
-                            content = response.content.decode('utf-8', errors='replace')
+                            content = response.content.decode("utf-8", errors="replace")
                             df = pd.read_csv(StringIO(content))
-                            df['School'] = school_name
-                            df['Year'] = y
-                            df['Tab'] = tab_name
+                            df["School"] = school_name
+                            df["Year"] = y
+                            df["Tab"] = tab_name
                             all_dfs.append(df)
                             logger.info(f"✅ Successfully loaded {school_name} - {tab_name}")
                         except Exception as e:
@@ -118,11 +116,12 @@ class FeedbackDataLoader:
                 if all_dfs:
                     combined_df = pd.concat(all_dfs, ignore_index=True)
                     self.student_feedback_dict[cat][y] = combined_df
-                    csv_path = os.path.join(self.data_dir, 'raw', cat, f"sy{y}_{cat}_feedback.csv")
+                    csv_path = os.path.join(self.data_dir, "raw", cat, f"sy{y}_{cat}_feedback.csv")
                     os.makedirs(os.path.dirname(csv_path), exist_ok=True)
                     combined_df.to_csv(csv_path, index=False)
                     logger.info(f"💾 Saved combined DataFrame to {csv_path}")
         return self.student_feedback_dict
+
 
 if __name__ == "__main__":
     import argparse
@@ -135,9 +134,4 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     loader = FeedbackDataLoader()
-    loader.download_all(
-        year=args.year,
-        category=args.category,
-        school=args.school,
-        tab=args.tab
-    )
+    loader.download_all(year=args.year, category=args.category, school=args.school, tab=args.tab)

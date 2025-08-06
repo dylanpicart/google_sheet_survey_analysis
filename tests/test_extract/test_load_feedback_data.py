@@ -1,24 +1,13 @@
-import pytest
 import pandas as pd
 import yaml
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 from scripts.extract.load_feedback_data import FeedbackDataLoader
 
+
 def test_load_and_clean_sheet(tmp_path, monkeypatch):
     # Create dummy links.yaml
-    dummy_links = {
-        "2023": {
-            "younger": {
-                "Test School": {
-                    "Form Responses": {
-                        "sheet_id": "sid",
-                        "gid": "gid"
-                    }
-                }
-            }
-        }
-    }
+    dummy_links = {"2023": {"younger": {"Test School": {"Form Responses": {"sheet_id": "sid", "gid": "gid"}}}}}
     data_dir = tmp_path / "data"
     raw_dir = data_dir / "raw" / "younger"
     config_dir = data_dir / "configs"
@@ -32,19 +21,21 @@ def test_load_and_clean_sheet(tmp_path, monkeypatch):
 
     # Mock requests.get to return dummy CSV content
     dummy_csv = "Q1,Q2\nYes,No\nNo,Yes"
+
     class DummyResponse:
         def __init__(self, content):
             self.content = content
-        def raise_for_status(self): pass
-    with patch("scripts.extract.load_feedback_data.requests.get") as mock_get, \
-         patch.object(FeedbackDataLoader, "_make_headers", return_value={}):
+
+        def raise_for_status(self):
+            pass
+
+    with patch("scripts.extract.load_feedback_data.requests.get") as mock_get, patch.object(
+        FeedbackDataLoader, "_make_headers", return_value={}
+    ):
         mock_get.return_value = DummyResponse(dummy_csv.encode("utf-8"))
         # Instantiate loader with test paths
         loader = FeedbackDataLoader(
-            data_dir=str(data_dir),
-            yaml_path=str(yaml_path),
-            service_account_file=str(fake_creds),
-            headers={}
+            data_dir=str(data_dir), yaml_path=str(yaml_path), service_account_file=str(fake_creds), headers={}
         )
         loader.download_all()  # Run the ETL
 

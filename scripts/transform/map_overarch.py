@@ -5,6 +5,7 @@ from utils import setup_logging
 
 logger = setup_logging("transform")
 
+
 def normalize(text):
     if not isinstance(text, str):
         return ""
@@ -14,13 +15,16 @@ def normalize(text):
     text = text.replace("’", "'").replace("“", '"').replace("”", '"')
     return text
 
+
 def extract_bracketed(text):
     match = re.search(r"\[(.*?)\]", str(text))
     return normalize(match.group(1)) if match else None
 
+
 def extract_overarching(text):
     match = re.split(r"\[.*?\]", str(text))
     return normalize(match[0]) if match else normalize(text)
+
 
 def build_canonical_to_overarching(audit_df):
     audit_df["Canonical_Extracted"] = audit_df["Raw Question"].apply(extract_bracketed)
@@ -32,6 +36,7 @@ def build_canonical_to_overarching(audit_df):
         else:
             canon_to_over[normalize(row["Raw Question"])] = normalize(row["Raw Question"])
     return canon_to_over
+
 
 def add_overarching(summary_csv, canonical_to_overarching_map):
     df = pd.read_csv(summary_csv)
@@ -51,13 +56,8 @@ def add_overarching(summary_csv, canonical_to_overarching_map):
     out = out.rename(columns={canonical_col: "Canonical Question"})
     return out
 
-def map_overarching_workflow(
-    summary_younger,
-    summary_older,
-    audit_younger,
-    audit_older,
-    output_file
-):
+
+def map_overarching_workflow(summary_younger, summary_older, audit_younger, audit_older, output_file):
     audit_y = pd.read_csv(audit_younger)
     audit_o = pd.read_csv(audit_older)
 
@@ -85,6 +85,7 @@ def map_overarching_workflow(
     logger.info(f"First 10 rows:\n{all_qs.head(10)}")
     return all_qs
 
+
 def main():
     summary_younger = "data/processed/consolidated_questions_younger.csv"
     summary_older = "data/processed/consolidated_questions_older.csv"
@@ -96,8 +97,9 @@ def main():
         summary_older=summary_older,
         audit_younger=audit_younger,
         audit_older=audit_older,
-        output_file=output_file
+        output_file=output_file,
     )
+
 
 if __name__ == "__main__":
     main()

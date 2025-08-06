@@ -2,6 +2,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 import os
 
+
 def setup_logging(
     log_stage,
     log_level=logging.INFO,
@@ -9,7 +10,7 @@ def setup_logging(
     max_bytes=5 * 1024 * 1024,
     backup_count=3,
     separate_error_log=True,
-    log_to_file=True
+    log_to_file=True,
 ):
     """
     log_stage: 'extract', 'transform', or 'load'
@@ -18,10 +19,7 @@ def setup_logging(
     logger = logging.getLogger(log_stage)
     logger.setLevel(log_level)
 
-    formatter = logging.Formatter(
-        "%(asctime)s %(levelname)s [%(name)s] %(message)s",
-        "%Y-%m-%d %H:%M:%S"
-    )
+    formatter = logging.Formatter("%(asctime)s %(levelname)s [%(name)s] %(message)s", "%Y-%m-%d %H:%M:%S")
 
     # Clear any existing handlers
     if logger.hasHandlers():
@@ -32,9 +30,7 @@ def setup_logging(
     if log_to_file:
         os.makedirs(log_dir, exist_ok=True)
         log_file = os.path.join(log_dir, f"{log_stage}.log")
-        main_handler = RotatingFileHandler(
-            log_file, maxBytes=max_bytes, backupCount=backup_count, encoding="utf-8"
-        )
+        main_handler = RotatingFileHandler(log_file, maxBytes=max_bytes, backupCount=backup_count, encoding="utf-8")
         main_handler.setFormatter(formatter)
         logger.addHandler(main_handler)
 
