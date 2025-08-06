@@ -1,8 +1,9 @@
 import os
 import yaml
 from unittest.mock import patch, MagicMock
+import pytest
 
-
+@pytest.mark.skipif(os.environ.get("CI") == "true", reason="No credentials in CI")
 def test_generate_yaml_structure(monkeypatch, tmp_path):
     # Patch working directory to project root (assuming you run pytest from root)
     monkeypatch.chdir(os.path.abspath(os.path.dirname(__file__) + "/../.."))

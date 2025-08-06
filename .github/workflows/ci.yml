@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      PYTHONPATH: .  # So tests can import scripts, utils, etc.
+      PYTHONPATH: .:./scripts  # So tests can import scripts, utils, etc.
 
     steps:
       - name: Checkout code

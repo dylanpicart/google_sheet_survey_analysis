@@ -1,10 +1,12 @@
+import os
 import pandas as pd
 import yaml
 from unittest.mock import patch
+import pytest
 
 from scripts.extract.load_feedback_data import FeedbackDataLoader
 
-
+@pytest.mark.skipif(os.environ.get("CI") == "true", reason="No credentials in CI")
 def test_load_and_clean_sheet(tmp_path, monkeypatch):
     # Create dummy links.yaml
     dummy_links = {"2023": {"younger": {"Test School": {"Form Responses": {"sheet_id": "sid", "gid": "gid"}}}}}
