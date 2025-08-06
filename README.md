@@ -361,7 +361,7 @@ black . --line-length 120
 ruff check scripts/ tests/ utils/ --fix
 flake8 scripts/ tests/ utils/
 bandit -r scripts/ utils/
-
+```
 ---
 
 ## **Possible Approaches to Data Cleaning**
