@@ -34,8 +34,8 @@ root/
 ├── utils/                   # Shared Python utilities/helpers
 │
 ├── scripts/
-│   ├── extract/         # Scripts for data download, cleaning, auditing
-│   ├── transform/       # Scripts for mapping, summaries, consolidation
+│   ├── extract/             # Scripts for data download, cleaning, auditing
+│   ├── transform/           # Scripts for mapping, summaries, consolidation
 │   └── load/                # Scripts for Excel/output/reporting
 │
 ├── logs/                    # Logging data and issues throughout the ETL pipeline

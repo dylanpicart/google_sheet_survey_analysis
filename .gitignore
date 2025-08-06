@@ -38,7 +38,7 @@ data/configs/links.yaml
 *.tmp
 *.bak
 
-# === Google API Credentials / Secrets ===
+# === Google API Credentials/Secrets ===
 secrets/
 *.json
 *.p12
